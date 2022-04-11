@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Fri Apr  8 22:13:41 2022
-
-@author: Sai Mudumba
-"""
-
 import numpy as np
 from numpy.linalg import eig
 import matplotlib.pyplot as plt
@@ -57,3 +50,20 @@ plt.show()
 # plt.plot(np.arange(64)+1, np.cumsum(pca.explained_variance_ratio_))
 # plt.xlabel('number of components')
 # plt.ylabel('cumulative explained variance');
+
+
+### METHOD 3: COVARIANCE MATRIX
+covMat = np.cov(np.transpose(X))
+U, s, Vt = np.linalg.svd(covMat, full_matrices=True)
+pc = np.matmul(Vt[0:2],np.transpose(X))
+pc = np.transpose(pc)
+pc1 = pc[:,0]
+pc2 = pc[:,1]
+plt.scatter(pc1, pc2,
+            c=digits.target, edgecolor='none', alpha=0.5,
+            cmap=plt.cm.get_cmap('Spectral', 10))
+plt.xlabel('component 1')
+plt.ylabel('component 2')
+plt.title('Method 3: Using Covariance Matrix and Finding its SVD')
+plt.colorbar();
+plt.show()
