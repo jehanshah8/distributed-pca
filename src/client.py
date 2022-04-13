@@ -1,7 +1,5 @@
-from pydoc import cli
 import socket
 import sys
-from time import sleep
 
 class Client:
     def __init__(self, header=128, format='utf-8', disconnect_msg='Disconnecting'):
@@ -25,6 +23,18 @@ class Client:
         self._s.send(m)
         print(f"[send] Sent {msg}")
 
+    def receive(self): 
+        msg_length = self._s.recv(self.header).decode(self.format)
+        if msg_length:
+            msg_length = int(msg_length)
+            msg = self._s.recv(msg_length).decode(self.format)
+            print(f"[receive] Received {msg}")
+        return msg
+
+    def request(self, prompt):
+        self.send(prompt)
+        return self.receive()
+
     def disconnect(self):
         self.send(self.disconnect_msg)
         self._s.close()
@@ -42,7 +52,7 @@ if __name__ == '__main__':
     client = Client() 
     client.connect(hostname, port)
     client.send("Hello World!")
-    input()
+    #client.request("Hi there!")
     client.send("Goodbye!")
-    input()
+    #input()
     client.disconnect()

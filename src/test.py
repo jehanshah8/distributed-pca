@@ -1,79 +1,44 @@
-import sys
-import numpy as np
-import pandas as pd
-import src.server as server
+import src.utils as utils
 import src.distributedPCA as distributedPCA
+ 
+#split dataset into n parts and safe to file as dataset0.csv...datasetn.csv
 
-def load_dataset(filename = 'iris_with_cluster.csv'):
-    """
-    data_mat = []
-    label_mat = []
-    fr = open(filename)
-    for line in fr.readlines():
-        line_array=line.strip().split(',')
-        records = []
-        for attr in line_array[:-1]:
-            records.append(float(attr))
-        data_mat.append(records)
-        label_mat.append(int(line_array[-1]))
-    data_mat = np.array(data_mat)
-    
-    label_mat = np.array(label_mat)
-    
-    return data_mat,label_mat
-    """
-
-    df = pd.read_csv(filename)
-    data_mat = df.iloc[:,:-1]
-    label_mat = df.iloc[:,-1]
-    return data_mat, label_mat
+#spin up coordinator (server)
 
 
-def split_dataset(X, Y=None, n_nodes=2): 
-        assert n_nodes > 0, "Invalid number of nodes"
+#loop on n_components, 
+#   invoke run(n_components) which returns P_hat
+#   evaluate 
+#   write results to file
 
-        if (X != None): 
-            local_featuresets = np.array_split(X, n_nodes)
-        else: 
-            local_featuresets = None
+# 1 run is 1 full execution of algo 1 
+# We want to repeat runs with various t for given n and mal nodes
+# We want to repeat runs with various n given t and mal nodes
+# We want to repeat runs with various mal nodes given t and n
 
-        if (Y != None): 
-            local_featuresets = np.array_split(Y, n_nodes)
-        else: 
-            local_labelsets = None
+#Which question to ask: 
+#Given n nodes
+#How big of a t do we need if we have m mal_nodes
+#How many mal nodes can we tolerate if t is set
 
-        return local_featuresets, local_labelsets
+import sys 
 
 if __name__ == '__main__':
     if len(sys.argv) == 5:
-        filename = sys.argv[1]
-        n_nodes = int(sys.argv[2])
-        n_components = int(sys.argv[3])
-        n_mal_nodes = int(sys.argv[4])
+        n_nodes = int(sys.argv[1])
+        n_mal_nodes = int(sys.argv[2])
+        mal_type = sys.argv[3]
+        dataset_path = sys.argv[4]
+        n_components = sys.argv[5]
+
     else:
-        filename = 'iris_with_cluster.csv'
         n_nodes = 1
-        n_components = 5
         n_mal_nodes = 0
+        mal_type = 0
+        dataset_path = 'iris_with_cluster.csv'
+        n_components = 4
 
-    data_mat, label_mat = load_dataset(filename)
-    #print(data_mat)
-    
-    local_featuresets, local_labelsets = split_dataset(data_mat, label_mat, n_nodes)
+    utils.split_dataset(dataset_path, n_components)
 
-    nodes = []
-    for i in range(n_nodes - n_mal_nodes):
-        nodes.append(distributedPCA.LocalPCA(n_components=n_components))
-
-    for i in range(n_mal_nodes): 
-        nodes.append(distributedPCA.MalLocalPCA(n_components=n_components))
-
-    # Assuming one central coordinator but each node executing global pca 
-    for i in range(n_nodes):
-        nodes[i].fit(local_featuresets[i])
-
-    globalPCA = GlobalPCA(n_components=n_components, nodes=local_nodes)
-    globalPCA.fit()
-    
-# python3 test.py iris_with_cluster.csv 10 5 0
-    
+    distPCA = distributedPCA.DistributedPCA(n_nodes=n_nodes, n_mal_nodes=n_mal_nodes, mal_type=mal_type)
+    P_hat = distPCA.fit_transform(dataset_path=dataset_path, n_components=n_components)

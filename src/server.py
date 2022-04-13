@@ -1,17 +1,15 @@
-from email import message
-from re import T
 import socket
 import threading
 import sys
-
-from matplotlib.pyplot import connect
+import time
 
 
 class Server:
-    def __init__(self, header=128, format='utf-8', disconnect_msg='Disconnecting'):
+    def __init__(self, header=128, format='utf-8', disconnect_msg='Disconnecting', n_nodes=1):
         self.header = header
         self.format = format
         self.disconnect_msg = disconnect_msg
+        self.n_nodes = n_nodes
         self._s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     def bind(self, hostname, port):
@@ -30,23 +28,24 @@ class Server:
     def broadcast(self):
         pass
 
+    def receive(self, s): 
+        msg_length = s.recv(self.header).decode(self.format)
+        if msg_length:
+            msg_length = int(msg_length)
+            msg = s.recv(msg_length).decode(self.format)
+        return msg
+
     def handle_client(self, conn, addr):
         print(f"[{addr}] New connection")
 
         connected = True
         while connected: 
-            msg_length = conn.recv(self.header).decode(self.format)
-            if msg_length:
-                msg_length = int(msg_length)
-                msg = conn.recv(msg_length).decode(self.format)
-                if msg == self.disconnect_msg:
-                    connected = False 
+            msg = self.receive(conn)
+    
+            print(f"[{addr}] {msg}")
                 
-                print(f"[{addr}] {msg}")
-                #conn.send("received".encode(self.format))
-                
-                if connected:
-                    self.send(conn, "received")
+            if msg == self.disconnect_msg:
+                connected = False     
                 
         conn.close()
         print(f"[{addr}] Disconnected")
@@ -54,11 +53,13 @@ class Server:
     def start(self):
         print(f"[start] Sever started")
         self._s.listen()
-        while True:
+        clients = 0
+        while clients < self.n_nodes:
             #when a new connection occurs, accept and start a thread to handle that client
             conn, addr = self._s.accept()
             thread = threading.Thread(target=self.handle_client, args=(conn, addr))
             thread.start()
+            clients += 1
             print(f"[start] Active connections: {threading.activeCount() - 1}")
 
 if __name__ == '__main__':
@@ -72,3 +73,4 @@ if __name__ == '__main__':
     server = Server() 
     server.bind(hostname, port)
     server.start()
+
