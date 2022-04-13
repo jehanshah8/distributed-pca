@@ -1,52 +1,32 @@
-from operator import matmul
-import numpy as np
-from numpy import linalg
-from sklearn.decomposition import PCA
-from sklearn.utils.extmath import svd_flip
-
-class GlobalPCA: 
-    def __init__(self, n_components=None): 
-        self.n_components = n_components
-    
-    def fit(self, X, y=None):     
-        pass
-
-    def fit_transform(self, nodes):
-        assert nodes.len() > 1
-
-        local_cov_mats = []
-        for v in nodes: 
-            local_cov_mats.append(matmul(v.S, v.Vt))
-
-        global_cov_mat = np.vstack(local_cov_mats)
-
-        # Algorithm 1 lines 11 - 12
-        U, S, Vt = np.linalg.svd(global_cov_mat, full_matrices=True) #TODO: full mat?
-        U = U[:, : self.n_components_]
-
-        # Algorithm 1 lines 11 - 12
-        for v in nodes: 
-            local_cov_mats.append(matmul(v.S, v.Vt))
-        # P_new = X * V = U * S * Vt * V = U * S
-        U *= S[: self.n_components_]
-
-        return U
+import socket
+import src.pca_coordinator as coordinator
+import src.pca_node as node
 
 
-class LocalPCA: 
-    def __init__(self, n_components=None): 
-        self.pca = PCA(n_components)
+class DistributedPCA():
+    def __init__(self, n_nodes, n_mal_nodes=0, mal_type=0, coordinator='naive'):
+        self._hostname = socket.gethostbyname(socket.gethostname())
+        self._port = 5050
 
-    def fit_transform(self, X, Y=None):
-        self.mean_ = np.mean(X, axis=0)
-        X -= self.mean_
+        self.n_nodes = n_nodes
+        self.n_mal_nodes = n_mal_nodes
+        self.nodes = []
+        if coordinator == 'naive':
+            self.coordinator = coordinator.NaivePCACoordinator(n_nodes=n_nodes)
 
-        U, S, Vt = linalg.svd(X, full_matrices=False)
-        # flip eigenvectors' sign to enforce deterministic output
-        U, Vt = svd_flip(U, Vt)
+        self.coordinator.bind((self._hostname, self._port))
+        self.coordinator.start()
 
-        components_ = Vt
+        for i in range(n_nodes - n_mal_nodes):
+            self.nodes.append(node.PCANode(id=i))
+            self.nodes[i].connect(self._hostname, self._port)
 
-class MalLocalPCA(LocalPCA): 
-    pass
+        if mal_type == 1:
+            for i in range(n_mal_nodes):
+                self.nodes.append(node.MalPCANode(id=i))
+                self.nodes[i].connect(self._hostname, self._port)
 
+    def fit_transform(self, dataset_path, n_components):
+        coordinator.run(dataset_path, n_components)
+        for v in self.nodes:
+            v.run()
