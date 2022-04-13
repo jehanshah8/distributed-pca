@@ -16,7 +16,6 @@ class Server:
         self._s.bind((hostname, port))
         print(f"[bind] Server bound to hostname {hostname}, port {port}")
 
-    
     def send(self, s, msg):
         msg = msg.encode(self.format)
         msg_length = len(msg)
@@ -28,7 +27,7 @@ class Server:
     def broadcast(self):
         pass
 
-    def receive(self, s): 
+    def receive(self, s):
         msg_length = s.recv(self.header).decode(self.format)
         if msg_length:
             msg_length = int(msg_length)
@@ -39,14 +38,14 @@ class Server:
         print(f"[{addr}] New connection")
 
         connected = True
-        while connected: 
+        while connected:
             msg = self.receive(conn)
-    
+
             print(f"[{addr}] {msg}")
-                
+
             if msg == self.disconnect_msg:
-                connected = False     
-                
+                connected = False
+
         conn.close()
         print(f"[{addr}] Disconnected")
 
@@ -55,12 +54,14 @@ class Server:
         self._s.listen()
         clients = 0
         while clients < self.n_nodes:
-            #when a new connection occurs, accept and start a thread to handle that client
+            # when a new connection occurs, accept and start a thread to handle that client
             conn, addr = self._s.accept()
-            thread = threading.Thread(target=self.handle_client, args=(conn, addr))
+            thread = threading.Thread(
+                target=self.handle_client, args=(conn, addr))
             thread.start()
             clients += 1
             print(f"[start] Active connections: {threading.activeCount() - 1}")
+
 
 if __name__ == '__main__':
     if len(sys.argv) == 3:
@@ -70,7 +71,6 @@ if __name__ == '__main__':
         hostname = socket.gethostbyname(socket.gethostname())
         port = 5050
 
-    server = Server() 
+    server = Server()
     server.bind(hostname, port)
     server.start()
-
