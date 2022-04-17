@@ -20,12 +20,16 @@ def get_local_dataset_path(dataset_path, id):
     return local_dataset_path
 
 
-def split_dataset(dataset_path, n_chunks):
+def split_dataset(dataset_path, n_chunks, write=True):
     df = load_dataset(dataset_path, False)
-    df = np.array_split(df, n_chunks)
+    chunks = np.array_split(df, n_chunks)
 
-    for i in range(len(df)):
-        df[i].to_csv(get_local_dataset_path(dataset_path, i), index=False)
+    if write:
+        for i in range(len(chunks)):
+            chunks[i].to_csv(get_local_dataset_path(
+                dataset_path, i), index=False)
+    else:
+        return chunks
 
 
 if __name__ == '__main__':

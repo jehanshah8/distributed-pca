@@ -1,3 +1,4 @@
+from calendar import c
 import socket
 import threading
 import sys
@@ -11,27 +12,30 @@ class Server:
         self.disconnect_msg = disconnect_msg
         self.n_nodes = n_nodes
         self._s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.connections = []
 
     def bind(self, hostname, port):
         self._s.bind((hostname, port))
         print(f"[bind] Server bound to hostname {hostname}, port {port}")
 
-    def send(self, s, msg):
+    def send(self, conn, msg):
         msg = msg.encode(self.format)
         msg_length = len(msg)
         msg_length = str(msg_length).encode(self.format)
         msg_length += b' ' * (self.header - len(msg_length))
-        s.send(msg_length)
-        s.send(msg)
+        conn.send(msg_length)
+        conn.send(msg)
 
-    def broadcast(self):
-        pass
 
-    def receive(self, s):
-        msg_length = s.recv(self.header).decode(self.format)
+    def broadcast(self, msg, encoder=None):
+        [conn.send(msg, encoder) for conn in self.connections] 
+
+
+    def receive(self, conn):
+        msg_length = conn.recv(self.header).decode(self.format)
         if msg_length:
             msg_length = int(msg_length)
-            msg = s.recv(msg_length).decode(self.format)
+            msg = conn.recv(msg_length).decode(self.format)
         return msg
 
     def handle_client(self, conn, addr):
@@ -47,15 +51,17 @@ class Server:
                 connected = False
 
         conn.close()
+        self.connections.remove(conn)
         print(f"[{addr}] Disconnected")
 
     def start(self):
         print(f"[start] Sever started")
         self._s.listen()
         clients = 0
-        while clients < self.n_nodes:
+        while True: 
             # when a new connection occurs, accept and start a thread to handle that client
             conn, addr = self._s.accept()
+            self.connections.append(conn)
             thread = threading.Thread(
                 target=self.handle_client, args=(conn, addr))
             thread.start()
