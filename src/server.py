@@ -18,7 +18,7 @@ class Server:
         self._s.bind((hostname, port))
         print(f"[bind] Server bound to hostname {hostname}, port {port}")
 
-    def send(self, conn, msg):
+    def send(self, conn, msg, encoder=None):
         msg = msg.encode(self.format)
         msg_length = len(msg)
         msg_length = str(msg_length).encode(self.format)
@@ -28,7 +28,7 @@ class Server:
 
 
     def broadcast(self, msg, encoder=None):
-        [conn.send(msg, encoder) for conn in self.connections] 
+        [self.send(conn, msg, encoder) for conn in self.connections] 
 
 
     def receive(self, conn):
@@ -80,3 +80,4 @@ if __name__ == '__main__':
     server = Server()
     server.bind(hostname, port)
     server.start()
+    server.broadcast("broadcasting")
