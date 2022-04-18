@@ -6,9 +6,19 @@ import src.client as client
 import src.utils as utils
 
 
-class PCANode(client.Client):
-    def __init__(self, header=128, format='utf-8', disconnect_msg='Disconnecting'):
-        super().__init__(header, format, disconnect_msg)
+class PCANode():
+    """
+        Each node has a list of nodes that it is connected to. 
+        For each, it has a corresponding serever AND client
+    """
+
+    def __init__(self):
+        self.peers = []
+        
+
+    def addConnection(self, peer):
+        pass
+
 
     def run(self):
         round_one_info = self.request("round_one")
@@ -16,7 +26,7 @@ class PCANode(client.Client):
             utils.get_local_dataset_path(dataset_path))
 
 
-class MalPCANode1(client.Client):
+class MalPCANode1():
     pass
 
 
