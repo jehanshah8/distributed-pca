@@ -17,7 +17,7 @@ def ConvertNumpyArray2List(NumpyArray):
     return ListArray
 
 # Examples
-A = np.array([1, 2, 3, 4])
+A = np.array([[1, 2], [3, 4]])
 print(A)
 print(type(A))
 

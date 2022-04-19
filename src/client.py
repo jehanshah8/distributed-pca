@@ -46,10 +46,11 @@ if __name__ == '__main__':
         port = sys.argv[2]
     else:
         hostname = socket.gethostbyname(socket.gethostname())
-        port = 5050
+        ports = [50007, 50008] 
 
     client = Client()
-    client.connect(hostname, port)
+    for i in range(len(ports)): 
+        client.connect(hostname, port)
     client.send("Hello World!")
     #client.request("Hi there!")
     client.send("Goodbye!")

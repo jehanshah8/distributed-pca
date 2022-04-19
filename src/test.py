@@ -22,7 +22,8 @@ import src.distributed_pca as dpca
 # How many mal nodes can we tolerate if t is set
 
 import sys
-import socket 
+import socket
+
 
 def generate_nodes(n):
     """Given the number of nodes, generate hostanames, and ports for nodes
@@ -33,11 +34,24 @@ def generate_nodes(n):
     nodes = []
     hostname = hostname = socket.gethostbyname(socket.gethostname())
     starting_port = 50007
-    
+
     for i in range(n):
         nodes.append((hostname, starting_port + i))
 
-    return nodes 
+    return nodes
+
+
+def create_fully_connected_graph(nodes):
+    """Creates a fully connected graph from the nodes
+        nodes: list of nodes in the graph
+        return: a dictionary {id: [(node), [(list of connected nodes)]]}
+    """
+    network_graph = {}
+    for id in range(len(nodes)):
+        network_graph[id] = [nodes[id], nodes[: id] + nodes[id + 1:]]
+
+    return network_graph
+
 
 def create_random_grid_graph(nodes, height, width=None, seed=1):
     """Creates a random grid graph from the nodes
@@ -49,6 +63,7 @@ def create_random_grid_graph(nodes, height, width=None, seed=1):
         return: a dictionary {node : list of connected nodes}
     """
     pass
+
 
 if __name__ == '__main__':
     if len(sys.argv) == 5:
@@ -65,36 +80,35 @@ if __name__ == '__main__':
         mal_type = 0
         dataset_path = 'iris_with_cluster.csv'
         n_components = 4
-        
 
     #utils.split_dataset(dataset_path, n_components)
 
-    nodes = generate_nodes(n_nodes)
+    nodes = generate_nodes(n_nodes)  # [(hostname, port)]
 
-    network_graph = create_random_grid_graph(nodes, graph_height)
+    # {id: [(node), [(list of connected nodes)]]}
+    network_graph = create_fully_connected_graph(nodes)
+    #network_graph = create_random_grid_graph(nodes, graph_height)
 
-    #create the actual nodes and start them?
-    my_p2p_network = {}
-    i = 0
-    for node in network_graph.keys():
-        
-        # instantiate a new node 
-        #start the node
-        i += 1
+    # create the actual nodes and start them?
+    my_p2p_network = {}  # dict {id : p2p_node object}
+    for id in network_graph.keys():
+        # instantiate a new node
+        pass
 
-    for node, connections in my_p2p_network:
-        for conn in connections: 
-            #add outbound connections
+    for id in my_p2p_network.keys():  # for each node
+        # for each connection of that node
+        for conn in network_graph.values()[1]:
+            # add outbound connections
+            # my_p2p_network[id].   outbound connection (conn[0], conn[1])
             pass
-    
+
     # now the network is created and nodes are connected to each other
 
     # Part below can be put into a dist_pca func/class if needed
     for node in my_p2p_network.values():
-        # Starts pca
-        pass
+        node.start()
 
-    # Stop all nodes 
+    # Stop all nodes
 
     """
     distPCA = dpca.DistributedPCA(
@@ -102,4 +116,3 @@ if __name__ == '__main__':
     P_hat = distPCA.fit_transform(
         dataset_path=dataset_path, n_components=n_components)
     """
-    

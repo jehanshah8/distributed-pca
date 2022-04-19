@@ -26,10 +26,8 @@ class Server:
         conn.send(msg_length)
         conn.send(msg)
 
-
     def broadcast(self, msg, encoder=None):
-        [self.send(conn, msg, encoder) for conn in self.connections] 
-
+        [self.send(conn, msg, encoder) for conn in self.connections]
 
     def receive(self, conn):
         msg_length = conn.recv(self.header).decode(self.format)
@@ -49,6 +47,8 @@ class Server:
 
             if msg == self.disconnect_msg:
                 connected = False
+            else:
+                self.send(f"Received")
 
         conn.close()
         self.connections.remove(conn)
@@ -58,7 +58,7 @@ class Server:
         print(f"[start] Sever started")
         self._s.listen()
         clients = 0
-        while True: 
+        while True:
             # when a new connection occurs, accept and start a thread to handle that client
             conn, addr = self._s.accept()
             self.connections.append(conn)
@@ -70,13 +70,15 @@ class Server:
 
 
 if __name__ == '__main__':
-    if len(sys.argv) == 3:
-        hostname = sys.argv[1]
-        port = sys.argv[2]
+    if len(sys.argv) == 2:
+        #hostname = sys.argv[1]
+        port = sys.argv[1]
     else:
-        hostname = socket.gethostbyname(socket.gethostname())
-        port = 5050
+        #hostname = socket.gethostbyname(socket.gethostname())
+        port = 5007
 
+    hostname = socket.gethostbyname(socket.gethostname())
+    
     server = Server()
     server.bind(hostname, port)
     server.start()
