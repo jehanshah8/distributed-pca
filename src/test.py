@@ -78,8 +78,8 @@ if __name__ == '__main__':
         n_components = sys.argv[5]
 
     else:
-        n_nodes = 3 #10
-        graph_height = 3
+        n_nodes = 5 #10
+        graph_height = n_nodes
         n_mal_nodes = 0
         mal_type = 0
         dataset_path = 'iris_with_cluster.csv'
@@ -102,7 +102,7 @@ if __name__ == '__main__':
     # create the actual nodes and start them?
     my_p2p_network = {}  # dict {id : p2p_node object}
     for id in network_graph.keys():
-        my_p2p_network[id] = pca_p2p_node.PCANode(network_graph[id][0][0], network_graph[id][0][1], id, 3, debug=True)
+        my_p2p_network[id] = pca_p2p_node.PCANode(network_graph[id][0][0], network_graph[id][0][1], id, debug=True)
     
     time.sleep(1)
 
