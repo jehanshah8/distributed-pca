@@ -116,14 +116,14 @@ if __name__ == '__main__':
         # for each connection of that node
         for conn in network_graph[id][1]:
             node.connect_with(conn[0], conn[1])
-            time.sleep(1)
+            time.sleep(0.1)
             print()
             
         print()
         print('ended one round of connections')
         print()
 
-    time.sleep(2)
+    time.sleep(3)
 
     # now the network is created and nodes are connected to each other
     
@@ -135,17 +135,22 @@ if __name__ == '__main__':
     #first non-pca test
     for node in my_p2p_network.values():
         node.broadcast(f'Hello from node {node.id}')
+        time.sleep(0.1)
     #end
 
     # Stop all nodes
-    time.sleep(30)
+    time.sleep(5)
     print('stopping all')
 
     for node in my_p2p_network.values():  # for each node
         node.stop()
-        time.sleep(3)
+        time.sleep(1)
     
-    time.sleep(10)
+    time.sleep(5)
+
+    for node in my_p2p_network.values():  # for each node
+        node.join()
+        
     print('end test')
     
     """
