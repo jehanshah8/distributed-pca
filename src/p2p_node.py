@@ -4,7 +4,6 @@ import time
 import random
 import hashlib
 
-
 class Connection(threading.Thread):
     """This class is used to represent a connection for the Node class"""
 
@@ -156,13 +155,13 @@ class Node(threading.Thread):
         self.sock.listen(1)
         print(f'[{self.id}] Intitialized node at {self.hostname} : {self.port}')
 
-    def send(self, node, msg):
-        if node.id in self.connections.keys():
-            self.connections[node.id].send(msg)
+    def send(self, connected_node_id, msg):
+        if connected_node_id in self.connections.keys():
+            self.connections[connected_node_id].send(msg)
             self.message_count_send = self.message_count_send + 1
         else:    
             self.debug_print(
-                'Node.send: Could not send the data, node is not found!')
+                f'Node.send: Could not send the data, node {connected_node_id} is not found!')
 
     def broadcast(self, msg, exclude=set()):
         for conn in self.connections.values():
@@ -174,18 +173,20 @@ class Node(threading.Thread):
                 self.message_count_send = self.message_count_send + 1
 
     def connect_with(self, hostname, port):
-        """Connects to the node at given hostname and port"""
+        """Connects to the node at given hostname and port
+            return: id of the node we connected to in string form, None if not connected 
+        """
         if hostname == self.hostname and port == self.port:
             self.debug_print(
                 'Node.connect_with: Cannot connect with yourself!')
-            return False
+            return None
 
         # Check if node is already connected with this node!
-        for conn in self.connections.values():
+        for id, conn in self.connections.items():
             if conn.port == port and conn.hostname == hostname:
                 self.debug_print(
                     f'Node.connect_with: Already connected with node {conn.id}')
-                return True
+                return id
 
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -209,7 +210,7 @@ class Node(threading.Thread):
                     'Node.connect_with: You cannot connect with yourself?!')
                 #sock.send('CLOSING: Already having a connection together'.encode(self.encoding))
                 sock.close()
-                return True
+                return None
 
             # Cannot connect if we already have a connection
             if connected_node_id in self.connections.keys():
@@ -217,7 +218,7 @@ class Node(threading.Thread):
                     f'Node.connect_with: Already connected with node {connected_node_id}')
                 #sock.send('CLOSING: Already having a connection together'.encode(self.encoding))
                 sock.close()
-                return True
+                return connected_node_id
 
             connection_thread = Connection(
                 self, sock, connected_node_id, hostname, port)
@@ -227,24 +228,27 @@ class Node(threading.Thread):
                 f'Node.connect_with: Connected with node {connected_node_id}')
             self.debug_print(
                 f'Node.connect_with: Outbound connections {[id for id in self.connections.keys()]}')
-            return True
+            return connection_thread.id
 
         except Exception as e:
             self.debug_print(
                 f'Node.connect_with: Could not connect with node. {str(e)}')
-            return False
+            return None
 
-    def disconnect_with(self, hostname, port):
-        for conn in self.connections.values():
-            if conn.port == port and conn.hostname == hostname:
-                self.debug_print(
-                    f'Node.disconnect_with: Disconnecting with node {conn.id}')
-                conn.stop()
-                self.connections.pop[conn.id]
+        
+    def get_connected_nodes(self):
+        """ returns the ids of the connected nodes"""
+        return [id for id in self.connections.keys()]
 
+    def disconnect_with(self, connected_node_id):
+        if connected_node_id in self.connections.keys():
+            self.debug_print(
+                f'Node.disconnect_with: Disconnecting with node {connected_node_id}')
+            self.connections[connected_node_id].stop()
+            self.connections.pop(connected_node_id)
         else:
             self.debug_print(
-                f'Node.disconnect_with: Cannot disconnect with node {hostname}, {port}')
+                f'Node.disconnect_with: Cannot disconnect with node {connected_node_id}')
 
     def stop(self):
         """This removes all outbound connections, inbound connections and gracefully exits"""
@@ -296,8 +300,10 @@ class Node(threading.Thread):
 
         #self.debug_print('Node.run: Stopping node')
         for conn in self.connections.values():
+            #self.debug_print(f'Node.run: Disconnecting with node {id}')
             conn.stop()
-
+        
+        self.connections.clear()
         time.sleep(1)
 
         for conn in self.connections.values():

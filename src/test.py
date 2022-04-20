@@ -78,7 +78,7 @@ if __name__ == '__main__':
         n_components = sys.argv[5]
 
     else:
-        n_nodes = 5 #10
+        n_nodes = 3 #10
         graph_height = n_nodes
         n_mal_nodes = 0
         mal_type = 0
@@ -139,12 +139,14 @@ if __name__ == '__main__':
         node.broadcast(f'Hello from node {node.id}')
         time.sleep(0.1)
 
+    #test disconnect
+    my_p2p_network[0].disconnect_with(my_p2p_network[1].id)
+
     #test send
     for from_id, from_node in my_p2p_network.items():
-        for to_id, to_node in my_p2p_network.items():
-            if from_id != to_id:
-                from_node.send(to_node, f'Goodbye from {from_node.id}')
-                time.sleep(0.1)
+        for to_id in from_node.get_connected_nodes():
+            from_node.send(to_id, f'Goodbye from {from_node.id}')
+            time.sleep(0.1)
     #end
 
     # Stop all nodes
@@ -155,7 +157,10 @@ if __name__ == '__main__':
         node.stop()
         time.sleep(1)
     
-    time.sleep(1)
+    time.sleep(15)
+
+    for id, node in my_p2p_network.items():
+        print(f'[{id}] {node.get_connected_nodes()}')
 
     for node in my_p2p_network.values():  # for each node
         node.join()
