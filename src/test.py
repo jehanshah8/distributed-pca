@@ -123,7 +123,7 @@ if __name__ == '__main__':
         print('ended one round of connections')
         print()
 
-    time.sleep(3)
+    time.sleep(1)
 
     # now the network is created and nodes are connected to each other
     
@@ -148,14 +148,14 @@ if __name__ == '__main__':
     #end
 
     # Stop all nodes
-    time.sleep(5)
+    time.sleep(3)
     print('stopping all')
 
     for node in my_p2p_network.values():  # for each node
         node.stop()
         time.sleep(1)
     
-    time.sleep(5)
+    time.sleep(1)
 
     for node in my_p2p_network.values():  # for each node
         node.join()
