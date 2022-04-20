@@ -156,24 +156,22 @@ class Node(threading.Thread):
         self.sock.listen(1)
         print(f'[{self.id}] Intitialized node at {self.hostname} : {self.port}')
 
-    def send(self, conn, msg):
-        self.message_count_send = self.message_count_send + 1
-        if conn.id in self.connections.keys():
-            conn.send(msg)
-            #self.connections[conn.id].send(msg)
-        else:
+    def send(self, node, msg):
+        if node.id in self.connections.keys():
+            self.connections[node.id].send(msg)
+            self.message_count_send = self.message_count_send + 1
+        else:    
             self.debug_print(
                 'Node.send: Could not send the data, node is not found!')
 
     def broadcast(self, msg, exclude=set()):
-        self.message_count_send = self.message_count_send + 1
         for conn in self.connections.values():
             if conn in exclude:
                 self.debug_print(
                     'Node.send: Excluding node in sending the message')
             else:
-                self.message_count_send = self.message_count_send + 1
                 conn.send(msg)
+                self.message_count_send = self.message_count_send + 1
 
     def connect_with(self, hostname, port):
         """Connects to the node at given hostname and port"""

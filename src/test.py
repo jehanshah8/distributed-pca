@@ -133,9 +133,18 @@ if __name__ == '__main__':
         pass
 
     #first non-pca test
+
+    #test broadcast
     for node in my_p2p_network.values():
         node.broadcast(f'Hello from node {node.id}')
         time.sleep(0.1)
+
+    #test send
+    for from_id, from_node in my_p2p_network.items():
+        for to_id, to_node in my_p2p_network.items():
+            if from_id != to_id:
+                from_node.send(to_node, f'Goodbye from {from_node.id}')
+                time.sleep(0.1)
     #end
 
     # Stop all nodes
