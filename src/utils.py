@@ -1,6 +1,7 @@
 import sys
 import pandas as pd
 import numpy as np
+import os
 
 
 def load_dataset(dataset_path='iris_with_cluster.csv', seperate_feats=True):
@@ -35,7 +36,8 @@ if __name__ == '__main__':
         dataset_path = sys.argv[1]
         n = sys.argv[2]
     else:
-        dataset_path = '../datasets/iris/iris_with_cluster.csv'
-        n = 3
+        dataset_path = '/datasets/iris/iris_with_cluster.csv'
+        dataset_path = os.getcwd() + dataset_path
+        n = 7
 
     split_dataset(dataset_path, n)

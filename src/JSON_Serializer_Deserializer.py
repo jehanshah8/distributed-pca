@@ -1,7 +1,7 @@
 import json
 import numpy as np
 
-def JSON_Serialization(NumpyArray):
+def JSON_serializer(NumpyArray):
     ListData = ConvertNumpyArray2List(NumpyArray)
     encoder = json.dumps(ListData)
     return encoder
