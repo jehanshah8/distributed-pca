@@ -1,3 +1,5 @@
+from http import client
+from pydoc import cli
 import socket
 import sys
 
@@ -46,13 +48,14 @@ if __name__ == '__main__':
         port = sys.argv[2]
     else:
         hostname = socket.gethostbyname(socket.gethostname())
-        ports = [50007, 50008] 
+        port = 50007
 
     client = Client()
-    for i in range(len(ports)): 
-        client.connect(hostname, port)
+    client.connect(hostname, port)
     client.send("Hello World!")
+    client.receive()
     #client.request("Hi there!")
     client.send("Goodbye!")
+    client.receive()
     # input()
     client.disconnect()

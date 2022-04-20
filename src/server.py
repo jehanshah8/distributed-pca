@@ -48,7 +48,7 @@ class Server:
             if msg == self.disconnect_msg:
                 connected = False
             else:
-                self.send(f"Received")
+                self.send(conn, f"Received")
 
         conn.close()
         self.connections.remove(conn)
@@ -75,11 +75,11 @@ if __name__ == '__main__':
         port = sys.argv[1]
     else:
         #hostname = socket.gethostbyname(socket.gethostname())
-        port = 5007
+        port = 50007
 
     hostname = socket.gethostbyname(socket.gethostname())
     
     server = Server()
     server.bind(hostname, port)
     server.start()
-    server.broadcast("broadcasting")
+    #server.broadcast("broadcasting")

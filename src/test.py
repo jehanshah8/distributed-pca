@@ -1,5 +1,10 @@
-import src.utils as utils
-import src.distributed_pca as dpca
+from os import abort
+import sys
+import socket
+import time
+
+import utils
+import pca_p2p_node
 
 # split dataset into n parts and safe to file as dataset0.csv...datasetn.csv
 
@@ -21,8 +26,7 @@ import src.distributed_pca as dpca
 # How big of a t do we need if we have m mal_nodes
 # How many mal nodes can we tolerate if t is set
 
-import sys
-import socket
+
 
 
 def generate_nodes(n):
@@ -74,7 +78,7 @@ if __name__ == '__main__':
         n_components = sys.argv[5]
 
     else:
-        n_nodes = 10
+        n_nodes = 3 #10
         graph_height = 3
         n_mal_nodes = 0
         mal_type = 0
@@ -84,32 +88,66 @@ if __name__ == '__main__':
     #utils.split_dataset(dataset_path, n_components)
 
     nodes = generate_nodes(n_nodes)  # [(hostname, port)]
+    print('Nodes')
+    print(nodes)
+    print()
 
     # {id: [(node), [(list of connected nodes)]]}
     network_graph = create_fully_connected_graph(nodes)
     #network_graph = create_random_grid_graph(nodes, graph_height)
+    print('Network Graph')
+    print(network_graph)
+    print()
 
     # create the actual nodes and start them?
     my_p2p_network = {}  # dict {id : p2p_node object}
     for id in network_graph.keys():
-        # instantiate a new node
-        pass
+        my_p2p_network[id] = pca_p2p_node.PCANode(network_graph[id][0][0], network_graph[id][0][1], id, 3, debug=True)
+    
+    time.sleep(1)
 
-    for id in my_p2p_network.keys():  # for each node
-        # for each connection of that node
-        for conn in network_graph.values()[1]:
-            # add outbound connections
-            # my_p2p_network[id].   outbound connection (conn[0], conn[1])
-            pass
-
-    # now the network is created and nodes are connected to each other
-
-    # Part below can be put into a dist_pca func/class if needed
     for node in my_p2p_network.values():
         node.start()
 
-    # Stop all nodes
+    print()
+    time.sleep(1)
 
+    for id, node in my_p2p_network.items():  # for each node
+        # for each connection of that node
+        for conn in network_graph[id][1]:
+            node.connect_with(conn[0], conn[1])
+            time.sleep(1)
+            print()
+            
+        print()
+        print('ended one round of connections')
+        print()
+
+    time.sleep(2)
+
+    # now the network is created and nodes are connected to each other
+    
+    # Part below can be put into a dist_pca func/class if needed
+    for node in my_p2p_network.values():
+        #do pca
+        pass
+
+    #first non-pca test
+    for node in my_p2p_network.values():
+        node.broadcast(f'Hello from node {node.id}')
+    #end
+
+    # Stop all nodes
+    time.sleep(30)
+    print('stopping all')
+
+    for node in my_p2p_network.values():  # for each node
+        node.stop()
+        time.sleep(3)
+    
+    time.sleep(10)
+    print('end test')
+    
     """
     distPCA = dpca.DistributedPCA(
         n_nodes=n_nodes, n_mal_nodes=n_mal_nodes, mal_type=mal_type)
