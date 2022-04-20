@@ -1,3 +1,4 @@
+from email import header
 import threading
 import socket
 import time
@@ -20,8 +21,6 @@ class Connection(threading.Thread):
 
         # Byte encoding format
         self.encoding = 'utf-8'
-
-        self.received_messages = []
 
         self.sock.settimeout(10.0)
 
@@ -69,13 +68,11 @@ class Connection(threading.Thread):
                 eot_pos = buffer.find(self.EOT_CHAR)
 
                 while eot_pos > 0:
-                    self.received_messages.append(
-                        buffer[:eot_pos].decode(self.encoding))
+                    msg = buffer[:eot_pos].decode(self.encoding)
                     buffer = buffer[eot_pos + 1:]
 
-                    # TODO: send main thread the message
-                    self.main_node.debug_print(self.received_messages.pop())
-                    # end todo
+                    self.main_node.message_handler(self.id, msg)
+                    #self.main_node.debug_print(f'from node {self.id}:, {msg}')
 
                     # self.main_node.message_count_recv += 1 # decide how I want main node to fetch messages from queue
                     eot_pos = buffer.find(self.EOT_CHAR)
@@ -312,3 +309,8 @@ class Node(threading.Thread):
         #self.sock.settimeout(None)
         self.sock.close()
         print(f'[{self.id}] Stopped node at {self.hostname} : {self.port}')
+
+    def message_handler(self, sender_id, msg):
+        """ The actual logic for anything you want to do with the ndoe"""
+        self.debug_print(f'Node.message_handler: From node {sender_id}: {msg}')
+
