@@ -109,15 +109,16 @@ def plot(lowDDataMat, labelMat, figname):
 
 if __name__ == "__main__":
     
-    n_nodes = 10
-    dataset_path = '/datasets/iris/iris_with_cluster.csv'
+    n_nodes = 6
+    dataset_path = '/datasets/cho/cho.csv'
+    # dataset_path = '/datasets/iris/iris_with_cluster.csv'
     dataset_path = os.getcwd() + dataset_path
     n_components = 2
 
     ### central
     data_mat, label_mat = load_dataset(dataset_path)
     label_mat = np.array(label_mat)
-    pca = PCA(2)  # project from 64 to 2 dimensions
+    pca = PCA(n_components)  # project from 64 to 2 dimensions
     projected_2 = pca.fit_transform(data_mat)
     print(np.shape(projected_2))
     plot(projected_2, label_mat, 'central')
