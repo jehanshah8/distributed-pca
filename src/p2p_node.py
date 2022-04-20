@@ -1,9 +1,9 @@
-from email import header
 import threading
 import socket
 import time
 import random
 import hashlib
+import json
 
 class Connection(threading.Thread):
     """This class is used to represent a connection for the Node class"""
@@ -30,6 +30,9 @@ class Connection(threading.Thread):
             f'Connection.init: Started with client {self.id} | {self.hostname} : {self.port}')
 
     def send(self, msg):
+        if isinstance(msg, dict):
+            msg = json.dumps(msg)
+        
         try:
             self.sock.sendall(msg.encode(self.encoding) + self.EOT_CHAR)
 
@@ -37,13 +40,27 @@ class Connection(threading.Thread):
             self.main_node.debug_print(
                 'Connection.send: Error sending data to node: ' + str(e))
             self.stop()  # Stopping node due to failure
-
         # TODO: encrypted communication? signed messages and authentication?
 
     def stop(self):
         self.terminate_flag.set()
         self.main_node.debug_print(
             f'Connection.stop: Stopping connection with node {self.id}')
+
+    def parse_packet(self, packet):
+        """Parse the packet and determines wheter it has been send in str, json or byte format. It returns
+           the according data."""
+        try:
+            packet_decoded = packet.decode(self.encoding)
+
+            try:
+                return json.loads(packet_decoded)
+
+            except json.decoder.JSONDecodeError:
+                return packet_decoded
+
+        except UnicodeDecodeError:
+            return packet
 
     def run(self):
         # Listens to messages and stores them in a buffer queue
@@ -68,13 +85,12 @@ class Connection(threading.Thread):
                 eot_pos = buffer.find(self.EOT_CHAR)
 
                 while eot_pos > 0:
-                    msg = buffer[:eot_pos].decode(self.encoding)
+                    msg = buffer[:eot_pos]#.decode(self.encoding)
                     buffer = buffer[eot_pos + 1:]
-
-                    self.main_node.message_handler(self.id, msg)
+                    
+                    self.main_node.message_handler(self.id, self.parse_packet(msg))
                     #self.main_node.debug_print(f'from node {self.id}:, {msg}')
 
-                    # self.main_node.message_count_recv += 1 # decide how I want main node to fetch messages from queue
                     eot_pos = buffer.find(self.EOT_CHAR)
 
             time.sleep(0.01)
@@ -312,5 +328,5 @@ class Node(threading.Thread):
 
     def message_handler(self, sender_id, msg):
         """ The actual logic for anything you want to do with the ndoe"""
-        self.debug_print(f'Node.message_handler: From node {sender_id}: {msg}')
-
+        self.debug_print(f'Node.message_handler: From node {sender_id}: {type(msg)} {msg}')
+        self.message_count_recv += 1

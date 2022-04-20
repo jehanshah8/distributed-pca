@@ -1,10 +1,10 @@
-from os import abort
 import sys
 import socket
 import time
-
+import json
 import utils
 import pca_p2p_node
+import numpy as np
 
 # split dataset into n parts and safe to file as dataset0.csv...datasetn.csv
 
@@ -102,7 +102,7 @@ if __name__ == '__main__':
     # create the actual nodes and start them?
     my_p2p_network = {}  # dict {id : p2p_node object}
     for id in network_graph.keys():
-        my_p2p_network[id] = pca_p2p_node.PCANode(network_graph[id][0][0], network_graph[id][0][1], id, debug=True)
+        my_p2p_network[id] = pca_p2p_node.PCANode(network_graph[id][0][0], network_graph[id][0][1], id, debug=True, t=n_components)
     
     time.sleep(1)
 
@@ -135,19 +135,26 @@ if __name__ == '__main__':
     #first non-pca test
 
     #test broadcast
-    for node in my_p2p_network.values():
-        node.broadcast(f'Hello from node {node.id}')
-        time.sleep(0.1)
+    #for node in my_p2p_network.values():
+    #    node.broadcast(f'Hello from node {node.id}')
+    #    time.sleep(0.1)
 
     #test disconnect
     #my_p2p_network[0].disconnect_with(my_p2p_network[1].id)
 
     #test send
-    for from_id, from_node in my_p2p_network.items():
-        for to_id in from_node.get_connected_nodes():
-            from_node.send(to_id, f'Goodbye from {from_node.id}')
-            time.sleep(0.1)
+    #for from_id, from_node in my_p2p_network.items():
+    #    for to_id in from_node.get_connected_nodes():
+    #        from_node.send(to_id, f'Goodbye from {from_node.id}')
+    #        time.sleep(0.1)
     #end
+
+    #singular_values = np.eye(10)
+    #msg = {}
+    #msg['singular_values'] = np.ndarray.tolist(singular_values)
+    ##msg['singular_vectors'] = 
+    #my_p2p_network[0].send(my_p2p_network[1].id, msg)
+
 
     # Stop all nodes
     time.sleep(3)
