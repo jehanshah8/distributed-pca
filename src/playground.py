@@ -109,7 +109,7 @@ def plot(lowDDataMat, labelMat, figname):
 
 if __name__ == "__main__":
     
-    n_nodes = 1
+    n_nodes = 10
     dataset_path = '/datasets/iris/iris_with_cluster.csv'
     dataset_path = os.getcwd() + dataset_path
     n_components = 2
