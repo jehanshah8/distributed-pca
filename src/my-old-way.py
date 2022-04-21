@@ -1,3 +1,4 @@
+from queue import Full
 import sys
 import pandas as pd
 
@@ -44,9 +45,7 @@ def split_dataset(dataset_path, n_chunks, write=True):
                 dataset_path, i), index=False)
     else:
         data_mats = []
-        #chunks[:, :-1]
         label_mats = []
-        #chunks[:, -1]
         for i in range(len(chunks)):
             data_mats.append(chunks[i].iloc[:, :-1])
             label_mats.append(chunks[i].iloc[:,-1])
@@ -56,30 +55,19 @@ def round_one(P_i, n_components):
         mean = np.mean(P_i, axis=0)
         P_i -= mean
         #print(f'data shape = {np.shape(local_datasets[i])}')
-        U_i, D_i, E_i_T = linalg.svd(P_i)
+        U_i, D_i, E_i_T = linalg.svd(P_i, full_matrices=True)
         #print(f'U shape = {np.shape(U_i)}')
         #print(f'D shape = {np.shape(D_i)}')
         #print(f'E_T shape = {np.shape(E_i_T)}')
         # flip eigenvectors' sign to enforce deterministic output
-        #u, e_T = svd_flip(u, e_T)
-        
-        D_i_t = np.zeros_like(P_i)
-        for i in range(n_components):
-            D_i_t[i][i] = D_i[i]
-        #print(f'D_t shape = {np.shape(D_i_t)}')
-        #print(D_i)
-        #print(D_i_t)
-
-        # algo way to get P_i_t
-        P_i_t = matmul(U_i, D_i_t)
-        P_i_t = matmul(P_i_t, E_i_T)
-        #
+        #U_i, E_i_T = svd_flip(U_i, E_i_T)
         
         # my way
-        #P_i_t = matmul(P_i, np.transpose(E_i_T[:n_components]))
-        #
+        P_i_t = matmul(P_i, np.transpose(E_i_T[:n_components]))
+        P_i_t = matmul(P_i_t, E_i_T)
+        #P_i_t = P_i.to_numpy()
 
-        #print(f'P_i_t {P_i_t}')
+        print(f'my way{P_i_t}')
         #print(f'data shape after t = {np.shape(local_datasets[i])}')
 
         return D_i[:n_components], np.transpose(E_i_T[:n_components]), P_i_t
@@ -89,7 +77,6 @@ def round_two(singular_values_recv, singular_vectors_recv, P_i_t, n_components):
     #print(f'shape of local data {np.shape(P_i_t)}')
 
     g_cov_mat = np.zeros((np.shape(P_i_t)[1], np.shape(P_i_t)[1]))  #either txt or dxd? 
-    
     #print(f'shape of g_cov_mat {np.shape(g_cov_mat)}')
 
     #for data from each node
@@ -156,15 +143,11 @@ def round_two(singular_values_recv, singular_vectors_recv, P_i_t, n_components):
     #P_i_hat = np.matmul(P_i_hat, np.transpose(sorted_eigen_vectors)) ## adding this means no dim reduction on transform
     return P_i_hat
 
-        
-    #np.concatenate(cov_mats, axis=0)
-    #print(g_cov_mat)
-
 if __name__ == "__main__":
     
     n_nodes = 5
-    dataset_path = '/datasets/cho/cho.csv'
-    #dataset_path = '/datasets/iris/iris_with_cluster.csv'
+    #dataset_path = '/datasets/cho/cho.csv'
+    dataset_path = '/datasets/iris/iris_with_cluster.csv'
     dataset_path = os.getcwd() + dataset_path
     n_components = 2
 
