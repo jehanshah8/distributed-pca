@@ -58,7 +58,7 @@ def round_one(P_i, n_components):
         #print(np.transpose(E_T[:n_components]))
         return D[:n_components], np.transpose(E_T[:n_components])
 
-def round_two(singular_values_recv, singular_vectors_recv, P_i, n_components):
+def round_two(singular_values_recv, singular_vectors_recv, P_i, n_components, id):
     g_cov_mat = np.zeros((n_components, n_components))
     P_i = P_i.to_numpy()
     for i in range(len(singular_values_recv)):
@@ -86,6 +86,7 @@ def round_two(singular_values_recv, singular_vectors_recv, P_i, n_components):
 
     sorted_eigen_vectors = sorted_eigen_vectors[:, :n_components]
     #print(f't eigen_vectors: {sorted_eigen_vectors}')
+    P_i_t = np.matmul(P_i, singular_vectors_recv[id]) 
     P_i_hat = np.matmul(P_i_t, sorted_eigen_vectors)
     P_i_hat = np.matmul(P_i_hat, np.transpose(sorted_eigen_vectors))
     return P_i_hat
@@ -94,24 +95,23 @@ def round_two(singular_values_recv, singular_vectors_recv, P_i, n_components):
     #np.concatenate(cov_mats, axis=0)
     #print(g_cov_mat)
 
-def plot(lowDDataMat, labelMat, figname):
+def plot(projected_data, labels, figname):
     '''
     Input:
         lowDDataMat: the 2-d data after PCA transformation obtained from pca function
         labelMat: the corresponding label of each observation obtained from loadData
     '''
 
-    lowDDataMatT = np.transpose(lowDDataMat)
+    projected_data = np.transpose(projected_data)
     #print(lowDDataMatT)
-    plt.scatter(lowDDataMatT[0],lowDDataMatT[1], c=labelMat)
+    plt.scatter(projected_data[0],projected_data[1], c=labels)
     plt.savefig(figname)
-    #plt.show()
 
 if __name__ == "__main__":
     
-    n_nodes = 6
-    dataset_path = '/datasets/cho/cho.csv'
-    # dataset_path = '/datasets/iris/iris_with_cluster.csv'
+    n_nodes = 5
+    #dataset_path = '/datasets/cho/cho.csv'
+    dataset_path = '/datasets/iris/iris_with_cluster.csv'
     dataset_path = os.getcwd() + dataset_path
     n_components = 2
 
@@ -147,7 +147,7 @@ if __name__ == "__main__":
 
     P_i_hats_recv = []
     for i in range(n_nodes):
-        P_i_hats_recv.append(round_two(singular_values_recv, singular_vectors_recv, local_data[i], n_components))
+        P_i_hats_recv.append(round_two(singular_values_recv, singular_vectors_recv, local_data[i], n_components, i))
     
     projected_1 = np.concatenate(P_i_hats_recv, axis=0)
     dist_label_mat = np.concatenate(local_labels, axis=0)
