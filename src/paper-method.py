@@ -77,11 +77,11 @@ def round_one(P_i, n_components):
     E_i_t_T = E_i_T[:n_components]
     
     #algo way
-    #P_i_t = matmul(U_i, D_i_t)  # D_i_t
-    #P_i_t = matmul(P_i_t, E_i_t_T)
+    P_i_t = matmul(U_i, D_i_t)  # D_i_t
+    P_i_t = matmul(P_i_t, E_i_t_T)
 
     # new way
-    P_i_t = P_i.to_numpy()
+    #P_i_t = P_i.to_numpy()
 
     #print(f'round two way')
     #print(f'{P_i_t}')
@@ -110,38 +110,41 @@ def round_two(singular_values_recv, singular_vectors_recv, P_i_t, n_components):
         cov_mat = np.matmul(E_i_t, np.transpose(D_i_t))
         cov_mat = np.matmul(cov_mat, D_i_t)
         cov_mat = np.matmul(cov_mat, np.transpose(E_i_t))
-
+        cov_mat = cov_mat 
         g_cov_mat = np.add(g_cov_mat, cov_mat)
 
-    # CERTAIN ABOUT BELOW
-    eigen_values, eigen_vectors = np.linalg.eig(g_cov_mat)
-    #print(f'eigen_values: {eigen_values}')
-    #print(f'eigen_vectors: {eigen_vectors}')
+    g_cov_mat = g_cov_mat / (len(singular_values_recv) * np.shape(P_i_t)[0])
 
-    eigen_stuff = list(zip(eigen_values, eigen_vectors))
-    eigen_stuff = sorted(eigen_stuff, key=lambda x: x[0], reverse=True)
-    sorted_eigen_values, sorted_eigen_vectors = zip(*eigen_stuff)
-    sorted_eigen_vectors = np.array(sorted_eigen_vectors)
-    sorted_eigen_vectors = sorted_eigen_vectors[:, :n_components]
+    #print(g_cov_mat)
+    # CERTAIN ABOUT BELOW
+    U, D, E_T = linalg.svd(g_cov_mat, full_matrices=True)
    
-    P_i_hat = np.matmul(P_i_t, sorted_eigen_vectors)
+    P_i_hat = np.matmul(P_i_t, np.transpose(E_T[:n_components]))
     # adding below means no dim reduction on transform
-    #P_i_hat = np.matmul(P_i_hat, np.transpose(sorted_eigen_vectors))
+    #P_i_hat = np.matmul(P_i_hat, E_T[:n_components])
     return P_i_hat
 
 
 if __name__ == "__main__":
 
-    n_nodes = 1
-    dataset_path = '/datasets/cho/cho.csv'
-    #dataset_path = '/datasets/iris/iris_with_cluster.csv'
+    n_nodes = 10
+    #dataset_path = '/datasets/cho/cho.csv'
+    dataset_path = '/datasets/iris/iris_with_cluster.csv'
     dataset_path = os.getcwd() + dataset_path
-    n_components = 10
+    n_components = 4
 
     data_mat, label_mat = load_dataset(dataset_path)
     label_mat = np.array(label_mat)
     
-    # central
+    #mean = np.mean(data_mat, axis=0)
+    #data_mat -= mean
+    #data_mat = data_mat.to_numpy()
+    #cov_mat = np.matmul(np.transpose(data_mat), data_mat)
+    
+    #cov_mat = np.cov(np.transpose(data_mat))
+    #print(cov_mat)
+    
+    ### central
     pca = PCA(n_components)
     projected_2 = pca.fit_transform(data_mat)
     # print(np.shape(projected_2))
