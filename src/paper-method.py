@@ -16,7 +16,7 @@ def plot(projected_data, labels, figname):
         lowDDataMat: the 2-d data after PCA transformation obtained from pca function
         labelMat: the corresponding label of each observation obtained from loadData
     '''
-    print(np.shape(projected_data))
+    #print(np.shape(projected_data))
     projected_data = np.transpose(projected_data)
     # print(lowDDataMatT)
     plt.scatter(projected_data[0], projected_data[1], c=labels)
@@ -68,19 +68,36 @@ def round_one(P_i, n_components):
     # flip eigenvectors' sign to enforce deterministic output
     #U_i, E_i_T = svd_flip(U_i, E_i_T)
 
-    D_i_t = np.zeros_like(P_i)
+    ### line 6 equivalent
+    D_i_t = np.zeros((np.shape(P_i)[0], n_components))
     for i in range(n_components):
         D_i_t[i][i] = D_i[i]
-    #print(f'D_t shape = {np.shape(D_i_t)}')
-    # print(D_i)
-    # print(D_i_t)
 
-    # algo way to get P_i_t-- low rank approximation of t
+    E_i_t_T = E_i_T[:n_components]
     P_i_t = matmul(U_i, D_i_t)  # D_i_t
-    P_i_t = matmul(P_i_t, E_i_T)
+    P_i_t = matmul(P_i_t, E_i_t_T)
 
+    #print(f'round two way')
+    #print(f'{P_i_t}')
+    #print(f'{np.shape(P_i_t)}')
+    ###
+
+    # equivalent as above
+    #D_i_t = np.zeros_like(P_i)
+    #for i in range(n_components):
+    #    D_i_t[i][i] = D_i[i]
+    ##print(f'D_t shape = {np.shape(D_i_t)}')
+    ## print(D_i)
+    ## print(D_i_t)
+#
+    ## algo way to get P_i_t-- low rank approximation of t
+    #P_i_t = matmul(U_i, D_i_t)  # D_i_t
+    #P_i_t = matmul(P_i_t, E_i_T)
+#
     #print(f'algo way')
-    # print(f'{P_i_t}')
+    #print(f'{P_i_t}')
+    #print(f'{np.shape(P_i_t)}')
+
 
     #print(f'P_i_t {P_i_t}')
     #print(f'data shape after t = {np.shape(local_datasets[i])}')
