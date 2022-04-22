@@ -21,6 +21,7 @@ def plot(projected_data, labels, figname):
     # print(lowDDataMatT)
     plt.scatter(projected_data[0], projected_data[1], c=labels)
     plt.savefig(figname)
+    plt.show()
 
 
 def load_dataset(dataset_path='iris_with_cluster.csv', seperate_feats=True):
@@ -74,33 +75,18 @@ def round_one(P_i, n_components):
         D_i_t[i][i] = D_i[i]
 
     E_i_t_T = E_i_T[:n_components]
-    P_i_t = matmul(U_i, D_i_t)  # D_i_t
-    P_i_t = matmul(P_i_t, E_i_t_T)
+    
+    #algo way
+    #P_i_t = matmul(U_i, D_i_t)  # D_i_t
+    #P_i_t = matmul(P_i_t, E_i_t_T)
+
+    # new way
+    P_i_t = P_i.to_numpy()
 
     #print(f'round two way')
     #print(f'{P_i_t}')
     #print(f'{np.shape(P_i_t)}')
     ###
-
-    # equivalent as above
-    #D_i_t = np.zeros_like(P_i)
-    #for i in range(n_components):
-    #    D_i_t[i][i] = D_i[i]
-    ##print(f'D_t shape = {np.shape(D_i_t)}')
-    ## print(D_i)
-    ## print(D_i_t)
-#
-    ## algo way to get P_i_t-- low rank approximation of t
-    #P_i_t = matmul(U_i, D_i_t)  # D_i_t
-    #P_i_t = matmul(P_i_t, E_i_T)
-#
-    #print(f'algo way')
-    #print(f'{P_i_t}')
-    #print(f'{np.shape(P_i_t)}')
-
-
-    #print(f'P_i_t {P_i_t}')
-    #print(f'data shape after t = {np.shape(local_datasets[i])}')
 
     return D_i[:n_components], np.transpose(E_i_T[:n_components]), P_i_t
 
@@ -140,17 +126,17 @@ def round_two(singular_values_recv, singular_vectors_recv, P_i_t, n_components):
    
     P_i_hat = np.matmul(P_i_t, sorted_eigen_vectors)
     # adding below means no dim reduction on transform
-    P_i_hat = np.matmul(P_i_hat, np.transpose(sorted_eigen_vectors))
+    #P_i_hat = np.matmul(P_i_hat, np.transpose(sorted_eigen_vectors))
     return P_i_hat
 
 
 if __name__ == "__main__":
 
-    n_nodes = 3
+    n_nodes = 1
     dataset_path = '/datasets/cho/cho.csv'
     #dataset_path = '/datasets/iris/iris_with_cluster.csv'
     dataset_path = os.getcwd() + dataset_path
-    n_components = 7
+    n_components = 10
 
     data_mat, label_mat = load_dataset(dataset_path)
     label_mat = np.array(label_mat)
