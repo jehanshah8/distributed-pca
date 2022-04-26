@@ -1,7 +1,0 @@
-if __name__ == "__main__":
-    
-    n_nodes = 5
-    #dataset_path = '/datasets/cho/cho.csv'
-    dataset_path = '/datasets/iris/iris_with_cluster.csv'
-    dataset_path = os.getcwd() + dataset_path
-    n_components = 2

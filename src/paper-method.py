@@ -69,12 +69,12 @@ def round_one(P_i, n_components):
     # flip eigenvectors' sign to enforce deterministic output
     #U_i, E_i_T = svd_flip(U_i, E_i_T)
 
-    ### line 6 equivalent
+    ### line 6 equivalent 
     D_i_t = np.zeros((np.shape(P_i)[0], n_components))
     for i in range(n_components):
         D_i_t[i][i] = D_i[i]
 
-    E_i_t_T = E_i_T[:n_components]
+    E_i_t_T = E_i_T[:n_components] 
     
     #algo way
     P_i_t = matmul(U_i, D_i_t)  # D_i_t
@@ -121,7 +121,7 @@ def round_two(singular_values_recv, singular_vectors_recv, P_i_t, n_components):
    
     P_i_hat = np.matmul(P_i_t, np.transpose(E_T[:n_components]))
     # adding below means no dim reduction on transform
-    #P_i_hat = np.matmul(P_i_hat, E_T[:n_components])
+    #P_i_hat = np.matmul(P_i_hat, E_T[:n_components]) 
     return P_i_hat
 
 
