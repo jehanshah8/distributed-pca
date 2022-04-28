@@ -121,13 +121,13 @@ def round_two(singular_values_recv, singular_vectors_recv, P_i_t, n_components):
    
     P_i_hat = np.matmul(P_i_t, np.transpose(E_T[:n_components]))
     # adding below means no dim reduction on transform
-    #P_i_hat = np.matmul(P_i_hat, E_T[:n_components]) 
+    P_i_hat = np.matmul(P_i_hat, E_T[:n_components]) 
     return P_i_hat
 
 
 if __name__ == "__main__":
 
-    n_nodes = 10
+    n_nodes = 3
     #dataset_path = '/datasets/cho/cho.csv'
     dataset_path = '/datasets/iris/iris_with_cluster.csv'
     dataset_path = os.getcwd() + dataset_path

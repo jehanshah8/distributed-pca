@@ -5,6 +5,7 @@ import random
 import hashlib
 import json
 
+
 class Connection(threading.Thread):
     """This class is used to represent a connection for the Node class"""
 
@@ -32,7 +33,7 @@ class Connection(threading.Thread):
     def send(self, msg):
         if isinstance(msg, dict):
             msg = json.dumps(msg)
-        
+
         try:
             self.sock.sendall(msg.encode(self.encoding) + self.EOT_CHAR)
 
@@ -85,10 +86,11 @@ class Connection(threading.Thread):
                 eot_pos = buffer.find(self.EOT_CHAR)
 
                 while eot_pos > 0:
-                    msg = buffer[:eot_pos]#.decode(self.encoding)
+                    msg = buffer[:eot_pos]  # .decode(self.encoding)
                     buffer = buffer[eot_pos + 1:]
-                    
-                    self.main_node.message_handler(self.id, self.parse_packet(msg))
+
+                    self.main_node.message_handler(
+                        self.id, self.parse_packet(msg))
                     #self.main_node.debug_print(f'from node {self.id}:, {msg}')
 
                     eot_pos = buffer.find(self.EOT_CHAR)
@@ -96,11 +98,12 @@ class Connection(threading.Thread):
             time.sleep(0.01)
 
         # IDEA: Invoke (event) a method in main_node so the user is able to send a bye message to the node before it is closed?
-        #self.sock.settimeout(None)
+        # self.sock.settimeout(None)
         self.sock.close()
         # Fixed issue #19: Send to main_node when a node is disconnected. We do not know whether it is inbounc or outbound.
         # self.main_node.node_disconnected(self)
-        self.main_node.debug_print(f'Connection.run: Stopped connection with node {self.id}')
+        self.main_node.debug_print(
+            f'Connection.run: Stopped connection with node {self.id}')
 
 
 class Node(threading.Thread):
@@ -172,7 +175,7 @@ class Node(threading.Thread):
         if connected_node_id in self.connections.keys():
             self.connections[connected_node_id].send(msg)
             self.message_count_send = self.message_count_send + 1
-        else:    
+        else:
             self.debug_print(
                 f'Node.send: Could not send the data, node {connected_node_id} is not found!')
 
@@ -248,7 +251,6 @@ class Node(threading.Thread):
                 f'Node.connect_with: Could not connect with node. {str(e)}')
             return None
 
-        
     def get_connected_nodes(self):
         """ returns the ids of the connected nodes"""
         return [id for id in self.connections.keys()]
@@ -308,25 +310,25 @@ class Node(threading.Thread):
                 raise e
 
             # self.reconnect_nodes()
-            #self.debug_print('hereeeeeeeeeeeeee')
+            # self.debug_print('hereeeeeeeeeeeeee')
             time.sleep(0.01)
 
         #self.debug_print('Node.run: Stopping node')
         for conn in self.connections.values():
             #self.debug_print(f'Node.run: Disconnecting with node {id}')
             conn.stop()
-        
+
         self.connections.clear()
         time.sleep(1)
 
         for conn in self.connections.values():
             conn.join()
 
-        #self.sock.settimeout(None)
+        # self.sock.settimeout(None)
         self.sock.close()
         print(f'[{self.id}] Stopped node at {self.hostname} : {self.port}')
 
     def message_handler(self, sender_id, msg):
         """ The actual logic for anything you want to do with the ndoe"""
-        self.debug_print(f'Node.message_handler: From node {sender_id}: {type(msg)} {msg}')
+        #self.debug_print(f'Node.message_handler: From node {sender_id}: {type(msg)} {msg}')
         self.message_count_recv += 1
