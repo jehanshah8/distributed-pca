@@ -166,3 +166,81 @@ class PCANode(p2p_node.Node):
             self.pca_complete = True
 
 
+class malPCANode(p2p_node.Node):
+    def __init__(self, hostname, port, id, max_connections=-1, debug=False, t=None, data=None):
+        super().__init__(hostname, port, id, max_connections, debug)
+
+        self.n_components = t
+        self.local_data = data
+        self.mean = None
+
+        self.round_one_complete = False
+        
+        self.singular_values_recv = {}
+        self.singular_vectors_recv = {}
+        self.data_lengths_recv = {}
+        
+        self.round_two_started = False
+        self.round_two_complete = False
+        
+        self.g_cov_mat = None
+        self.total_variance = None
+        self.projected_data_recv = {}
+
+        
+        self.projected_global_data = None
+        self.pca_complete = False
+        
+    def do_round_one(self):
+        
+        self.debug_print(f'Node.do_round_one: started')
+        mean = np.mean(self.local_data, axis=0)
+        self.local_data -= mean
+        
+        U, D, E_T = np.linalg.svd(self.local_data, full_matrices=True)
+        
+        D_t = np.zeros((np.shape(self.local_data)[0], self.n_components))
+        for i in range(self.n_components):
+            D_t[i][i] = D[i]
+        
+        E_t_T = E_T[:self.n_components]
+        self.local_data = np.matmul(U, D_t)  # D_i_t
+        self.local_data = np.matmul(self.local_data, E_t_T)
+        
+        ## DEFINE ATTACKS HERE:
+        attack_strategy = 1
+        
+        if attack_strategy == 1:
+            # A: pick the last two singular vectors instead of the first two
+            E_t_T = E_T[-self.n_components:]
+    
+        elif attack_strategy == 2:
+            # B: modify the singular vector
+            E_t_T = np.random.rand(E_t_T.shape[0], self.n_components)
+        
+        elif attack_strategy == 3:
+            # C: modify the singular vector and singular values to zeros
+            E_t_T = np.random.rand(E_t_T.shape[0], self.n_components)
+            D_t = np.random.rand((np.shape(self.local_data)[0], self.n_components))
+            
+        elif attack_strategy == 4:
+            # C: modify the singular vector and singular values to zeros
+            E_t_T = np.zeros(E_t_T.shape[0], self.n_components)
+            D_t = np.zeros((np.shape(self.local_data)[0], self.n_components))
+            
+        else:
+            do_nothing = 0
+        
+        
+        
+        
+        # Do not change the lines below
+        msg = {}
+        msg['singular_values'] = np.ndarray.tolist(D[:self.n_components])
+        msg['singular_vectors'] = np.ndarray.tolist(np.transpose(E_t_T))
+        msg['data_length'] = np.shape(self.local_data)[0]
+        
+        self.round_one_complete = True
+        self.debug_print(f'Node.do_round_one: finished')
+        
+        self.broadcast(msg)
