@@ -205,6 +205,32 @@ class MalPCANode1(PCANode):
             D_t[i][i] = D[i]
 
         E_t_T = E_T[:self.n_components]
+
+         ## DEFINE ATTACKS HERE:
+        attack_strategy = 1
+        
+        if attack_strategy == 1:
+            # A: pick the last two singular vectors instead of the first two
+            E_t_T = E_T[-self.n_components:]
+    
+        elif attack_strategy == 2:
+            # B: modify the singular vector
+            E_t_T = np.random.rand(E_t_T.shape[0], self.n_components)
+        
+        elif attack_strategy == 3:
+            # C: modify the singular vector and singular values to zeros
+            E_t_T = np.random.rand(E_t_T.shape[0], self.n_components)
+            D_t = np.random.rand((np.shape(self.local_data)[0], self.n_components))
+            
+        elif attack_strategy == 4:
+            # C: modify the singular vector and singular values to zeros
+            E_t_T = np.zeros(E_t_T.shape[0], self.n_components)
+            D_t = np.zeros((np.shape(self.local_data)[0], self.n_components))
+            
+        else:
+            do_nothing = 0
+
+
         self.local_data = np.matmul(U, D_t)  # D_i_t
         self.local_data = np.matmul(self.local_data, E_t_T)
         ## end logic

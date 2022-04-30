@@ -1,3 +1,4 @@
+from cProfile import label
 from functools import reduce
 import sys
 import socket
@@ -9,6 +10,8 @@ import pandas as pd
 from matplotlib import pyplot as plt
 import random
 from sklearn.decomposition import PCA
+from sklearn.cluster import KMeans
+from sklearn import metrics
 
 import pca_p2p_node
 
@@ -216,30 +219,39 @@ class P2P_Network():
 
 class BaselineTest(): #original data centered around mean
     def __init__(self):
-        self.n_components = None
-        self.projected_data = None
+        #self.n_components = None
+        #self.projected_data = None
         self.total_variance = None
+        self.rand_ind = None
 
-    def run(self, data_mat, n_components, results_dir):
+    def do_k_means_benchmarking(self, data_mat, label_mat):
+        n_true_clusters = np.unique(label_mat).size
+        kmeans = KMeans(init='k-means++', n_clusters=n_true_clusters, random_state=0) 
+        clustering = kmeans.fit_predict(data_mat)
+        self.rand_ind = metrics.rand_score(label_mat, clustering)
+
+    def run(self, data_mat, label_mat, n_components):
         self.n_components = n_components
-        self.projected_data = data_mat
+        #self.label_mat = label_mat
+        #self.projected_data = data_mat
+
 
         mean = np.mean(data_mat, axis=0)
         data_mat -= mean
-        self.projected_data = data_mat
+        #self.projected_data = data_mat
 
         U, D, E_T = np.linalg.svd(data_mat, full_matrices=True)
         explained_variance = (D**2) / (np.shape(data_mat)[0] - 1)
         self.total_variance = explained_variance.sum()
+        self.do_k_means_benchmarking(data_mat, label_mat)
 
-class PCATest(): #central PCA
+class PCATest(BaselineTest): #central PCA
     def __init__(self):
-        self.n_components = None
-        self.projected_data = None
-        self.total_variance = None
+        super().__init__()
 
-    def run(self, data_mat, n_components, results_dir, reduce_dim):
+    def run(self, data_mat, label_mat, n_components, reduce_dim):
         self.n_components = n_components
+        #self.label_mat = label_mat
         mean = np.mean(data_mat, axis=0)
         data_mat -= mean
         U, D, E_T = np.linalg.svd(data_mat, full_matrices=True)
@@ -251,28 +263,28 @@ class PCATest(): #central PCA
         E_t_T = E_T[:n_components]
 
         if not reduce_dim:
-            self.projected_data = np.matmul(U, D_t)  # D_i_t
-            self.projected_data = np.matmul(self.projected_data, E_t_T)
+            projected_data = np.matmul(U, D_t)  # D_i_t
+            projected_data = np.matmul(projected_data, E_t_T)
         else: 
-            self.projected_data = np.matmul(data_mat, np.transpose(E_t_T))
+            projected_data = np.matmul(data_mat, np.transpose(E_t_T))
 
     
-        U, D, E_T = np.linalg.svd(self.projected_data, full_matrices=True)
-        explained_variance = (D**2) / (np.shape(self.projected_data)[0] - 1)
+        U, D, E_T = np.linalg.svd(projected_data, full_matrices=True)
+        explained_variance = (D**2) / (np.shape(projected_data)[0] - 1)
         self.total_variance = explained_variance.sum()
 
+        self.do_k_means_benchmarking(projected_data, label_mat)
 
-class DistPCATest():
+class DistPCATest(BaselineTest):
     def __init__(self, p2p_network):
+        super().__init__()
         self.p2p_network = p2p_network.network
-        self.n_components = None
-        self.projected_data = None
-        self.total_variance = None
 
-    def run(self, datasets, n_components, results_dir, reduce_dim):
+    def run(self, datasets, label_mat, n_components, reduce_dim):
         print()
         print('begin test')
         self.n_components = n_components
+        #self.label_mat = label_mat
         for id, node in self.p2p_network.items():
             node.do_PCA(datasets[id], n_components, reduce_dim)
 
@@ -281,7 +293,7 @@ class DistPCATest():
         while not self.p2p_network[0].pca_complete:
             time.sleep(5)
 
-        self.projected_data = self.p2p_network[0].projected_global_data
+        projected_data = self.p2p_network[0].projected_global_data
         self.total_variance = self.p2p_network[0].total_variance
 
         # print(np.shape(dist_pca_projected_data))
@@ -289,18 +301,46 @@ class DistPCATest():
         print('end test')
         print()
 
+        self.do_k_means_benchmarking(projected_data, label_mat)
+
+def plot_total_variance(x, pca_tests, n_components, n_nodes, dataset_name):
+    figname = dataset_name + '_' + str(n_nodes) + 'nodes_' + str(n_components) + 'comps_total_var.png'
+    total_vars = [test.total_variance for test in pca_tests]
+    plt.bar(x, total_vars)
+    #plt.legend()
+    
+    plt.title('Total variance as a function of malicious nodes')
+    plt.text(len(x) - 3, total_vars[1], s=f'no. of principal components = {n_components}, \n no. of nodes = {n_nodes}')
+    plt.xlabel('no. of malicious nodes')
+    plt.ylabel('total variance explained by data (higher is better)')
+    plt.savefig(figname)
+    plt.show()
+
+
+def plot_rand_ind(x, pca_tests, n_components, n_nodes, dataset_name):
+    figname = dataset_name + '_' + str(n_nodes) + 'nodes_' + str(n_components) + 'comps_rand.png'
+    rand = [test.rand_ind for test in pca_tests]
+    plt.bar(x, rand)
+    #plt.legend()
+    
+    plt.title('Rand index for kmeans on projected data with m malicious nodes')
+    plt.text(len(x) - 3, rand[1], s=f'no. of principal components = {n_components}, \n no. of nodes = {n_nodes}')
+    plt.xlabel('no. of malicious nodes')
+    plt.ylabel('Rand index for K-means (higher is better)')
+    plt.savefig(figname)
+    plt.show()
 
 if __name__ == '__main__':
     if len(sys.argv) == 5:
         pass
     else:
-        n_nodes = 3
+        n_nodes = 5
         n_max_mal_nodes = n_nodes - 1
         #n_max_mal_nodes = 0
-        dataset_path = '/datasets/iris/iris_with_cluster.csv'
-        #dataset_path = '/datasets/cho/cho.csv'
-        n_components = 2
-        reduce_dim = True
+        #dataset_path = '/datasets/iris/iris_with_cluster.csv'
+        dataset_path = '/datasets/cho/cho.csv'
+        n_components = 10
+        reduce_dim = False
 
     
     dataset_name = dataset_path.split('/')[-1]
@@ -315,11 +355,11 @@ if __name__ == '__main__':
     pca_tests = []
 
     baseline_test = BaselineTest()
-    baseline_test.run(data_mat, n_components, results_dir)
+    baseline_test.run(data_mat, label_mat, n_components)
     pca_tests.append(baseline_test)
 
     central_pca_test = PCATest()
-    central_pca_test.run(data_mat, n_components, results_dir, reduce_dim)
+    central_pca_test.run(data_mat, label_mat, n_components, reduce_dim)
     pca_tests.append(central_pca_test)
 
     # start tests on network
@@ -331,7 +371,7 @@ if __name__ == '__main__':
     # test with no mal nodes
     pca_test = DistPCATest(my_p2p_network)
     pca_tests.append(pca_test)
-    pca_test.run(local_datasets, n_components, results_dir, reduce_dim)
+    pca_test.run(local_datasets, label_mat, n_components, reduce_dim)
     my_p2p_network.reset_all() 
 
     # iterate over increasing mal nodes
@@ -346,7 +386,7 @@ if __name__ == '__main__':
 
         pca_test = DistPCATest(my_p2p_network)
         pca_tests.append(pca_test)
-        pca_test.run(local_datasets, n_components, results_dir, reduce_dim)
+        pca_test.run(local_datasets, label_mat, n_components, reduce_dim)
 
         my_p2p_network.reset_all() 
 
@@ -354,12 +394,13 @@ if __name__ == '__main__':
     #time.sleep(3)
     my_p2p_network.destroy()
 
-    x = ['original data', 'central pca']
-    x += [str(x) + 'mal nodes' for x in range (n_max_mal_nodes + 1)]
-    total_vars = [test.total_variance for test in pca_tests]
-    plt.plot(x, total_vars)
-    plt.legend()
-    plt.show()
+    x = ['og data', 'c pca']
+    x += [str(x) for x in range (n_max_mal_nodes + 1)]
+    
+    plot_total_variance(x, pca_tests, n_components, n_nodes, dataset_name)
+
+    plot_rand_ind(x, pca_tests, n_components, n_nodes, dataset_name)
+    
 
     print('finished')
 
