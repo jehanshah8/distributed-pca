@@ -94,14 +94,18 @@ class Connection(threading.Thread):
                     #self.main_node.debug_print(f'from node {self.id}:, {msg}')
 
                     eot_pos = buffer.find(self.EOT_CHAR)
-
+            else:
+                #TODO handle non graceful exit
+                pass
             time.sleep(0.01)
-
+        
+        #self.main_node.debug_print(
+        #    f'Connection.run: stuck here, thread for node {self.id}')
         # IDEA: Invoke (event) a method in main_node so the user is able to send a bye message to the node before it is closed?
-        # self.sock.settimeout(None)
+        #self.sock.settimeout(None)
         self.sock.close()
         # Fixed issue #19: Send to main_node when a node is disconnected. We do not know whether it is inbounc or outbound.
-        # self.main_node.node_disconnected(self)
+        #self.main_node.disconnect_with(self.id)
         self.main_node.debug_print(
             f'Connection.run: Stopped connection with node {self.id}')
 
@@ -146,6 +150,8 @@ class Node(threading.Thread):
 
         self.encoding = 'utf-8'
         self.EOT_CHAR = 0x04.to_bytes(1, 'big')
+
+        self.disconnect_msg = 'disconnecting'
 
         # Start the TCP/IP server
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -274,7 +280,7 @@ class Node(threading.Thread):
     def run(self):
         while not self.terminate_flag.is_set():  # Check whether the thread needs to be closed
             try:
-                self.debug_print('Node.run: Waiting for incoming connection')
+                #self.debug_print('Node.run: Waiting for incoming connection')
                 sock, addr = self.sock.accept()
 
                 # When the maximum connections is reached, it disconnects the connection
@@ -314,17 +320,21 @@ class Node(threading.Thread):
             time.sleep(0.01)
 
         #self.debug_print('Node.run: Stopping node')
+        self.broadcast(self.disconnect_msg)
+            
+        time.sleep(1)
+
         for conn in self.connections.values():
             #self.debug_print(f'Node.run: Disconnecting with node {id}')
             conn.stop()
 
-        self.connections.clear()
+        #self.connections.clear()
         time.sleep(1)
 
         for conn in self.connections.values():
             conn.join()
 
-        # self.sock.settimeout(None)
+        #self.sock.settimeout(None)
         self.sock.close()
         print(f'[{self.id}] Stopped node at {self.hostname} : {self.port}')
 
@@ -332,3 +342,16 @@ class Node(threading.Thread):
         """ The actual logic for anything you want to do with the ndoe"""
         #self.debug_print(f'Node.message_handler: From node {sender_id}: {type(msg)} {msg}')
         self.message_count_recv += 1
+
+        if isinstance(msg, str):
+            if msg == self.disconnect_msg:
+                pass
+                # Do NOT change order below to avoid key errors (because of threading)
+                #temp = self.connections[sender_id]
+                #self.connections.pop(sender_id)
+                #temp.stop()
+                #self.loose_ends.append(temp)
+                #time.sleep(15)
+                #temp.join()
+                #self.connections[sender_id].join()
+                

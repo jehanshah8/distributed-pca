@@ -19,6 +19,7 @@ class PCANode(p2p_node.Node):
         self.singular_vectors_recv = {}
         self.data_lengths_recv = {}
         
+        self.reduce_dim = False
         self.round_two_started = False
         self.round_two_complete = False
         
@@ -30,12 +31,31 @@ class PCANode(p2p_node.Node):
         self.projected_global_data = None
         self.pca_complete = False
 
-    def do_PCA(self, data, t):
+    def do_PCA(self, data, t, reduce_dim=False):
         self.debug_print(f'Node.do_PCA: started')
         self.n_components = t
         self.local_data = data
+        self.reduce_dim = reduce_dim
         self.do_round_one()
         #self.debug_print(f'Node.do_PCA: finished')
+
+    def reset(self):
+        self.round_one_complete = False
+
+        self.singular_values_recv = {}
+        self.singular_vectors_recv = {}
+        self.data_lengths_recv = {}
+        
+        self.reduce_dim = False
+        self.round_two_started = False
+        self.round_two_complete = False
+        
+        self.g_cov_mat = None
+        self.total_variance = None
+        self.projected_data_recv = {}
+
+        self.projected_global_data = None
+        self.pca_complete = False
 
     #def get_transformed_data(self):
     #    #self.debug_print(f'Node.get_transformed_data: started')
@@ -110,7 +130,8 @@ class PCANode(p2p_node.Node):
             self.local_data, np.transpose(E_T[:self.n_components]))
 
         # adding below means projecting data onto original dimensional space
-        self.local_data = np.matmul(self.local_data, E_T[:self.n_components])
+        if not self.reduce_dim:
+            self.local_data = np.matmul(self.local_data, E_T[:self.n_components])
 
         msg = {}
         msg['local_projected_data'] = np.ndarray.tolist(self.local_data)
@@ -166,3 +187,36 @@ class PCANode(p2p_node.Node):
             self.pca_complete = True
 
 
+class MalPCANode1(PCANode):
+    def __init__(self, hostname, port, id, max_connections=-1, debug=False, t=None, data=None):
+        super().__init__(hostname, port, id, max_connections, debug, t, data)
+
+    def do_round_one(self):
+        self.debug_print(f'MalCPANode.do_round_one: started')
+        
+        ## this is the logic
+        mean = np.mean(self.local_data, axis=0)
+        self.local_data -= mean
+
+        U, D, E_T = np.linalg.svd(self.local_data, full_matrices=True)
+
+        D_t = np.zeros((np.shape(self.local_data)[0], self.n_components))
+        for i in range(self.n_components):
+            D_t[i][i] = D[i]
+
+        E_t_T = E_T[:self.n_components]
+        self.local_data = np.matmul(U, D_t)  # D_i_t
+        self.local_data = np.matmul(self.local_data, E_t_T)
+        ## end logic
+
+
+        # leave below untouched. Just sending stuff
+        msg = {}
+        msg['singular_values'] = np.ndarray.tolist(D[:self.n_components])
+        msg['singular_vectors'] = np.ndarray.tolist(np.transpose(E_t_T))
+        msg['data_length'] = np.shape(self.local_data)[0]
+        
+        self.round_one_complete = True
+        self.debug_print(f'MalCPANode.do_round_one: finished')
+        
+        self.broadcast(msg)
