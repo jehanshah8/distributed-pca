@@ -405,6 +405,7 @@ if __name__ == '__main__':
         while mal_id in malicious_node_ids:
             mal_id = random.randrange(1, n_nodes)
         malicious_node_ids.add(mal_id)
+        print(f'made node {mal_id} malicious')
 
         for key, attack_num in attacks.items():
             print(f'attack type {key}, {attack_num}')
