@@ -87,7 +87,7 @@ def split_dataset(df, n_chunks):
 
 
 class P2P_Network():
-    def __init__(self, n_nodes, nodes=None, get_network_topology=None):
+    def __init__(self, n_nodes, nodes=None, get_network_topology=None, node_class=pca_p2p_node.PCANode):
         self.network_graph = None
 
         if nodes is None:
@@ -111,7 +111,7 @@ class P2P_Network():
         # create the actual nodes and start them?
         self.network = {}  # dict {id : p2p_node object}
         for id in self.network_graph.keys():
-            self.network[id] = pca_p2p_node.PCANode(
+            self.network[id] = node_class(
                 self.network_graph[id][0][0], self.network_graph[id][0][1], id, debug=True)
 
         time.sleep(1)
@@ -183,7 +183,7 @@ class P2P_Network():
         for node in self.network.values():  # for each node
             node.join()
 
-    def make_malicious(self, ids, mal_type_class):
+    def make_malicious(self, ids, mal_type_class, attack_strategy):
         """Takes in a list of ids of the nodes to make malicious
         """
         #for id in ids:
@@ -214,6 +214,7 @@ class P2P_Network():
         #    self.network[id] = mal_node
         for id in ids:
             self.network[id].__class__ = mal_type_class 
+            self.network[id].set_attack_strategy(attack_strategy)
             #print(type(self.network[id]))
 
 
@@ -305,10 +306,17 @@ class DistPCATest(BaselineTest):
 
 def plot_total_variance(x, pca_tests, n_components, n_nodes, dataset_name):
     figname = dataset_name + '_' + str(n_nodes) + 'nodes_' + str(n_components) + 'comps_total_var.png'
-    total_vars = [test.total_variance for test in pca_tests]
-    plt.bar(x, total_vars)
-    #plt.legend()
     
+    x_axis = np.arange(len(x))
+    w = 0.2
+    i = -1
+    for attack_type, tests in pca_tests.items():
+        total_vars = [test.total_variance for test in tests]
+        plt.bar(x_axis+(i * w), total_vars, width=w, label=attack_type)
+        i += 1
+    
+    plt.legend(pca_tests.keys())
+    plt.xticks(x_axis,x)
     plt.title('Total variance as a function of malicious nodes')
     plt.text(len(x) - 3, total_vars[1], s=f'no. of principal components = {n_components}, \n no. of nodes = {n_nodes}')
     plt.xlabel('no. of malicious nodes')
@@ -319,10 +327,19 @@ def plot_total_variance(x, pca_tests, n_components, n_nodes, dataset_name):
 
 def plot_rand_ind(x, pca_tests, n_components, n_nodes, dataset_name):
     figname = dataset_name + '_' + str(n_nodes) + 'nodes_' + str(n_components) + 'comps_rand.png'
-    rand = [test.rand_ind for test in pca_tests]
-    plt.bar(x, rand)
-    #plt.legend()
     
+    x_axis = np.arange(len(x))
+    w = 0.2
+    i = -1
+    for attack_type, tests in pca_tests.items():
+        rand = [test.rand_ind for test in tests]
+
+        plt.bar(x_axis+(i * w), rand, width=w, label=attack_type)
+        i += 1
+    
+    plt.legend(pca_tests.keys())
+
+    plt.xticks(x_axis,x)
     plt.title('Rand index for kmeans on projected data with m malicious nodes')
     plt.text(len(x) - 3, rand[1], s=f'no. of principal components = {n_components}, \n no. of nodes = {n_nodes}')
     plt.xlabel('no. of malicious nodes')
@@ -334,12 +351,13 @@ if __name__ == '__main__':
     if len(sys.argv) == 5:
         pass
     else:
-        n_nodes = 5
+        n_nodes = 3
         n_max_mal_nodes = n_nodes - 1
         #n_max_mal_nodes = 0
-        #dataset_path = '/datasets/iris/iris_with_cluster.csv'
-        dataset_path = '/datasets/cho/cho.csv'
-        n_components = 10
+        #n_max_mal_nodes = 1
+        dataset_path = '/datasets/iris/iris_with_cluster.csv'
+        #dataset_path = '/datasets/cho/cho.csv'
+        n_components = 2
         reduce_dim = False
 
     
@@ -352,29 +370,34 @@ if __name__ == '__main__':
 
     data_mat, label_mat = load_dataset(dataset_path, True)
 
-    pca_tests = []
+    attacks = {'randomize' : 1, 'reverse_order' : 2, 'make_perpendicular' : 3}
+    pca_tests = {key : [] for key in attacks.keys()}
+    print(pca_tests)
 
     baseline_test = BaselineTest()
     baseline_test.run(data_mat, label_mat, n_components)
-    pca_tests.append(baseline_test)
+    {tests.append(baseline_test) for tests in pca_tests.values()}
 
     central_pca_test = PCATest()
     central_pca_test.run(data_mat, label_mat, n_components, reduce_dim)
-    pca_tests.append(central_pca_test)
+    #pca_tests.append(central_pca_test)
+    {tests.append(central_pca_test) for tests in pca_tests.values()}
 
     # start tests on network
     local_datasets = split_dataset(data_mat, n_nodes)
 
-    my_p2p_network = P2P_Network(n_nodes)
+    my_p2p_network = P2P_Network(n_nodes, node_class=pca_p2p_node.SecurePCA1)
     # now the network is created and nodes are connected to each other
 
     # test with no mal nodes
     pca_test = DistPCATest(my_p2p_network)
-    pca_tests.append(pca_test)
+    #pca_tests.append(pca_test)
+    {tests.append(pca_test) for tests in pca_tests.values()}
     pca_test.run(local_datasets, label_mat, n_components, reduce_dim)
     my_p2p_network.reset_all() 
 
     # iterate over increasing mal nodes
+    
     malicious_node_ids = set()
     random.seed(0)
     for i in range(n_max_mal_nodes):
@@ -382,13 +405,17 @@ if __name__ == '__main__':
         while mal_id in malicious_node_ids:
             mal_id = random.randrange(1, n_nodes)
         malicious_node_ids.add(mal_id)
-        my_p2p_network.make_malicious([mal_id], pca_p2p_node.MalPCANode1)
 
-        pca_test = DistPCATest(my_p2p_network)
-        pca_tests.append(pca_test)
-        pca_test.run(local_datasets, label_mat, n_components, reduce_dim)
+        for key, attack_num in attacks.items():
+            print(f'attack type {key}, {attack_num}')
+            tests = pca_tests[key]
+            my_p2p_network.make_malicious([mal_id], pca_p2p_node.MalPCANode, attack_num)
 
-        my_p2p_network.reset_all() 
+            pca_test = DistPCATest(my_p2p_network)
+            tests.append(pca_test)
+            pca_test.run(local_datasets, label_mat, n_components, reduce_dim)
+
+            my_p2p_network.reset_all() 
 
     # Stop all nodes
     #time.sleep(3)

@@ -4,6 +4,8 @@ import numpy as np
 import time
 import socket
 from matplotlib import pyplot as plt
+from sklearn.metrics.pairwise import cosine_similarity
+from numpy.linalg import norm
 
 class PCANode(p2p_node.Node):
     def __init__(self, hostname, port, id, max_connections=-1, debug=False, t=None, data=None):
@@ -14,6 +16,7 @@ class PCANode(p2p_node.Node):
         self.mean = None
 
         self.round_one_complete = False
+        self.E_t = None
         
         self.singular_values_recv = {}
         self.singular_vectors_recv = {}
@@ -88,9 +91,11 @@ class PCANode(p2p_node.Node):
         self.local_data = np.matmul(U, D_t)  # D_i_t
         self.local_data = np.matmul(self.local_data, E_t_T)
 
+        self.E_t = np.transpose(E_t_T)
+
         msg = {}
         msg['singular_values'] = np.ndarray.tolist(D[:self.n_components])
-        msg['singular_vectors'] = np.ndarray.tolist(np.transpose(E_t_T))
+        msg['singular_vectors'] = np.ndarray.tolist(self.E_t)
         msg['data_length'] = np.shape(self.local_data)[0]
         
         self.round_one_complete = True
@@ -187,9 +192,77 @@ class PCANode(p2p_node.Node):
             self.pca_complete = True
 
 
-class MalPCANode1(PCANode):
+class SecurePCA1(PCANode):
     def __init__(self, hostname, port, id, max_connections=-1, debug=False, t=None, data=None):
         super().__init__(hostname, port, id, max_connections, debug, t, data)
+
+    def do_round_two(self):
+        #self.round_two_started = True
+        self.debug_print(f'Node.do_round_two: started')
+        #self.debug_print(np.shape(self.local_data))
+        g_cov_mat = np.zeros(
+            (np.shape(self.local_data)[1], np.shape(self.local_data)[1]))
+
+        similarities = {}
+        # for data from each node
+        for id in self.connections.keys():
+
+            D_t = np.zeros((np.shape(self.local_data)[0], self.n_components))
+
+            for j in range(self.n_components):
+                D_t[j][j] = self.singular_values_recv[id][j]
+
+            E_t = self.singular_vectors_recv[id]
+
+            #security enhancement
+            #print(type(self.E_t), np.shape(self.E_t))
+            #print(type(E_t), np.shape(E_t))
+            #similarities[id] = cosine_similarity(np.transpose(self.E_t), np.transpose(E_t)) 
+            
+            
+            similarities[id] = []
+            A = np.transpose(self.E_t)
+            B = np.transpose(E_t)
+            for i in range(self.n_components):
+                similarities[id].append(np.dot(A[i],B[i]) / (norm(A[i])*norm(B[i])))
+            #self.debug_print(f'Cosine similarity with {id}:, {similarities[id]}')
+            #
+
+
+            cov_mat = np.matmul(E_t, np.transpose(D_t))
+            cov_mat = np.matmul(cov_mat, D_t)
+            cov_mat = np.matmul(cov_mat, np.transpose(E_t))
+            cov_mat = cov_mat / (self.data_lengths_recv[id] - 1)
+            g_cov_mat = np.add(g_cov_mat, cov_mat)
+
+        self.g_cov_mat = g_cov_mat
+        U, D, E_T = np.linalg.svd(g_cov_mat, full_matrices=True)
+
+        # projecting data onto the reduced (n_components) dimensional space
+        self.local_data = np.matmul(
+            self.local_data, np.transpose(E_T[:self.n_components]))
+
+        # adding below means projecting data onto original dimensional space
+        if not self.reduce_dim:
+            self.local_data = np.matmul(self.local_data, E_T[:self.n_components])
+
+        msg = {}
+        msg['local_projected_data'] = np.ndarray.tolist(self.local_data)
+        
+        self.debug_print(f'Node.do_round_two: finished')
+        self.round_two_complete = True
+
+        self.broadcast(msg)
+
+
+
+class MalPCANode(PCANode):
+    def __init__(self, hostname, port, id, max_connections=-1, debug=False, t=None, data=None):
+        super().__init__(hostname, port, id, max_connections, debug, t, data)
+        self.attack_strategy = 0
+
+    def set_attack_strategy(self, a): 
+        self.attack_strategy = a
 
     def do_round_one(self):
         self.debug_print(f'MalCPANode.do_round_one: started')
@@ -207,29 +280,31 @@ class MalPCANode1(PCANode):
         E_t_T = E_T[:self.n_components]
 
          ## DEFINE ATTACKS HERE:
-        attack_strategy = 1
-        
-        if attack_strategy == 1:
-            # A: pick the last two singular vectors instead of the first two
-            E_t_T = E_T[-self.n_components:]
-    
-        elif attack_strategy == 2:
-            # B: modify the singular vector
-            E_t_T = np.random.rand(E_t_T.shape[0], self.n_components)
-        
-        elif attack_strategy == 3:
-            # C: modify the singular vector and singular values to zeros
-            E_t_T = np.random.rand(E_t_T.shape[0], self.n_components)
-            D_t = np.random.rand((np.shape(self.local_data)[0], self.n_components))
+        if self.attack_strategy == 1:
+            # randomize the values in the singular vectors 
+            shape = np.shape(E_t_T)
+            E_t_T = np.random.rand(shape[0], shape[1])
             
-        elif attack_strategy == 4:
-            # C: modify the singular vector and singular values to zeros
-            E_t_T = np.zeros(E_t_T.shape[0], self.n_components)
-            D_t = np.zeros((np.shape(self.local_data)[0], self.n_components))
-            
-        else:
-            do_nothing = 0
+            #bounds = []
+            #for v in E_t_T:
+            #    min = np.min(v)
+            #    max = np.max(v)
+            #    v = np.random(size=v.size())
 
+        elif self.attack_strategy == 2:
+            # pick the least significant singular vectors first
+            E_t_T = E_T
+            E_t_T = np.flip(E_t_T, axis=0)
+            E_t_T = E_t_T[:self.n_components]
+        
+        elif self.attack_strategy == 3:
+            # make singular vectors perpendicular
+            for v in E_t_T:
+                x = -v[:-1].sum() / v[-1] 
+                u = np.ones_like(v)
+                #u = u.astype(np.float32)
+                u[-1] = x
+                v = u
 
         self.local_data = np.matmul(U, D_t)  # D_i_t
         self.local_data = np.matmul(self.local_data, E_t_T)
