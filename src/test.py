@@ -239,7 +239,7 @@ class BaselineTest(): #original data centered around mean
         self.do_k_means_benchmarking(data_mat, label_mat)
 
 class PCATest(BaselineTest): #central PCA
-    def __init__(self, n_mal_nodes=None, attack_type=None):
+    def __init__(self, n_mal_nodes=0, attack_type='None'):
         super().__init__(n_mal_nodes, attack_type)
 
     def run(self, data_mat, label_mat, n_components, reduce_dim):
@@ -272,7 +272,7 @@ class PCATest(BaselineTest): #central PCA
         self.do_k_means_benchmarking(projected_data, label_mat)
 
 class DistPCATest(BaselineTest):
-    def __init__(self, p2p_network, n_mal_nodes=None, attack_type=None):
+    def __init__(self, p2p_network, n_mal_nodes=0, attack_type='None'):
         super().__init__()
         self.p2p_network = p2p_network.network
         self.n_mal_nodes = n_mal_nodes
@@ -322,7 +322,13 @@ def plot_data(tests, label_mat, n_components, n_nodes, dataset_name):
     for i in range(len(tests)):
         t = tests[i]
         axs[i].scatter(t.projected_data[:,0], t.projected_data[:,1], c=label_mat)
-        axs[i].set_title(f'{t.n_mal_nodes} malicious nodes')
+
+        if i == 0:
+            axs[i].set_title(f'Original Data')
+        elif i == 1:
+            axs[i].set_title(f'Central PCA')
+        else: 
+            axs[i].set_title(f'{t.n_mal_nodes} Malicious Nodes')
         #plt.text(0, 0, s=f'proj data with principal components = {n_components}, \n no. of nodes = {n_nodes} \n {n_mal_nodes} of {attack_type} type')
     
     figname = f'{dataset_name}_{n_components}comps_{n_nodes}nodes_{attack_type}_attack_proj_data.png'
