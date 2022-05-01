@@ -225,7 +225,7 @@ class SecurePCA1(PCANode):
             B = np.transpose(E_t)
             for i in range(self.n_components):
                 similarities[id].append(np.dot(A[i],B[i]) / (norm(A[i])*norm(B[i])))
-            #self.debug_print(f'Cosine similarity with {id}:, {similarities[id]}')
+            self.debug_print(f'Cosine similarity with {id}:, {similarities[id]}')
             #
 
 
@@ -289,20 +289,21 @@ class MalPCANode(PCANode):
 
         elif self.attack_strategy == 2:
             D = np.flip(D)
-
             # pick the least significant singular vectors and siingular values first
             E_t_T = E_T
             E_t_T = np.flip(E_t_T, axis=0)
             E_t_T = E_t_T[:self.n_components]
         
         elif self.attack_strategy == 3:
-            # make singular vectors perpendicular
-            for v in E_t_T:
-                x = -v[:-1].sum() / v[-1] 
-                u = np.ones_like(v)
-                #u = u.astype(np.float32)
-                u[-1] = x
-                v = u
+            # make alternate singular vectors perpendicular
+            for i in range(len(E_t_T)):
+                if i % 2 != 0: 
+                    v = E_t_T[i]
+                    x = -v[:-1].sum() / v[-1] 
+                    u = np.ones_like(v)
+                    #u = u.astype(np.float32)
+                    u[-1] = x
+                    v = u 
 
         D_t = np.zeros((np.shape(self.local_data)[0], self.n_components))
         for i in range(self.n_components):
