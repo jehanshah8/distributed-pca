@@ -351,13 +351,13 @@ if __name__ == '__main__':
     if len(sys.argv) == 5:
         pass
     else:
-        n_nodes = 3
+        n_nodes = 5
         n_max_mal_nodes = n_nodes - 1
         #n_max_mal_nodes = 0
         #n_max_mal_nodes = 1
-        dataset_path = '/datasets/iris/iris_with_cluster.csv'
-        #dataset_path = '/datasets/cho/cho.csv'
-        n_components = 2
+        #dataset_path = '/datasets/iris/iris_with_cluster.csv'
+        dataset_path = '/datasets/cho/cho.csv'
+        n_components = 10
         reduce_dim = False
 
     

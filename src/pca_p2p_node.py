@@ -273,10 +273,6 @@ class MalPCANode(PCANode):
 
         U, D, E_T = np.linalg.svd(self.local_data, full_matrices=True)
 
-        D_t = np.zeros((np.shape(self.local_data)[0], self.n_components))
-        for i in range(self.n_components):
-            D_t[i][i] = D[i]
-
         E_t_T = E_T[:self.n_components]
 
          ## DEFINE ATTACKS HERE:
@@ -292,7 +288,9 @@ class MalPCANode(PCANode):
             #    v = np.random(size=v.size())
 
         elif self.attack_strategy == 2:
-            # pick the least significant singular vectors first
+            D = np.flip(D)
+
+            # pick the least significant singular vectors and siingular values first
             E_t_T = E_T
             E_t_T = np.flip(E_t_T, axis=0)
             E_t_T = E_t_T[:self.n_components]
@@ -305,6 +303,10 @@ class MalPCANode(PCANode):
                 #u = u.astype(np.float32)
                 u[-1] = x
                 v = u
+
+        D_t = np.zeros((np.shape(self.local_data)[0], self.n_components))
+        for i in range(self.n_components):
+            D_t[i][i] = D[i]
 
         self.local_data = np.matmul(U, D_t)  # D_i_t
         self.local_data = np.matmul(self.local_data, E_t_T)
