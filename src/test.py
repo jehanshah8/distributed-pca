@@ -317,7 +317,7 @@ def plot_data(tests, label_mat, n_components, n_nodes, dataset_name):
     
     fig, axs = plt.subplots(len(tests))
     #fig, axs = plt.subplots(3, 2)
-    fig.suptitle(f'{dataset_name} dataset with {n_components} principal components, {n_nodes} nodes and {attack_type} attack')
+    fig.suptitle(f'{dataset_name}_dataset with {n_components} principal components, {n_nodes} nodes and {attack_type} attack')
     
     for i in range(len(tests)):
         t = tests[i]
