@@ -223,7 +223,7 @@ class BaselineTest(): #original data centered around mean
     def run(self, data_mat, label_mat, n_components):
         self.n_components = n_components
         data_mat = np.array(data_mat)
-        print(data_mat.shape)
+        #print(data_mat.shape)
         label_mat = np.array(label_mat)
         #self.label_mat = label_mat
         #self.projected_data = data_mat
@@ -244,7 +244,7 @@ class PCATest(BaselineTest): #central PCA
 
     def run(self, data_mat, label_mat, n_components, reduce_dim):
         data_mat = np.array(data_mat)
-        print(data_mat.shape)
+        #print(data_mat.shape)
         label_mat = np.array(label_mat)
         self.n_components = n_components
         #self.label_mat = label_mat
@@ -330,7 +330,7 @@ def plot_data(tests, label_mat, n_components, n_nodes, dataset_name):
         else: 
             axs[i].set_title(f'{t.n_mal_nodes} Malicious Nodes')
         #plt.text(0, 0, s=f'proj data with principal components = {n_components}, \n no. of nodes = {n_nodes} \n {n_mal_nodes} of {attack_type} type')
-    
+    #plt.tight_layout()
     figname = f'{dataset_name}_{n_components}comps_{n_nodes}nodes_{attack_type}_attack_proj_data.png'
     fig.savefig(figname) 
     plt.show()
