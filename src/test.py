@@ -333,8 +333,7 @@ def plot_total_variance(x, pca_tests, n_components, n_nodes, dataset_name):
     """
     receives a dictionary of test objects. Each key is the attack type, value is list of test objects. Each test object has a field for total_variance
     """
-    figname = dataset_name + '_' + str(n_nodes) + 'nodes_' + str(n_components) + 'comps_total_var.png'
-    
+
     x_axis = np.arange(len(x))
     w = 0.2
     i = -1
@@ -355,6 +354,8 @@ def plot_total_variance(x, pca_tests, n_components, n_nodes, dataset_name):
     plt.text(len(x) - 3, total_vars[1], s=f'no. of principal components = {n_components}, \n no. of nodes = {n_nodes}')
     plt.xlabel('no. of malicious nodes')
     plt.ylabel('total variance explained by data (higher is better)')
+    
+    figname = f'dataset_name_{n_components}comps_{n_nodes}nodes_{attack_type}_total_var.png'
     plt.savefig(figname)
     plt.show()
 
@@ -363,8 +364,7 @@ def plot_rand_ind(x, pca_tests, n_components, n_nodes, dataset_name):
     """
     receives a dictionary of test objects. Each key is the attack type, value is list of test objects. Each test object has a field for rand_ind
     """
-    figname = dataset_name + '_' + str(n_nodes) + 'nodes_' + str(n_components) + 'comps_rand.png'
-    
+
     x_axis = np.arange(len(x))
     w = 0.2
     i = -1
@@ -381,6 +381,7 @@ def plot_rand_ind(x, pca_tests, n_components, n_nodes, dataset_name):
     plt.text(len(x) - 3, rand[1], s=f'no. of principal components = {n_components}, \n no. of nodes = {n_nodes}')
     plt.xlabel('no. of malicious nodes')
     plt.ylabel('Rand index for K-means (higher is better)')
+    figname = f'dataset_name_{n_components}comps_{n_nodes}nodes_{attack_type}_rand.png'
     plt.savefig(figname)
     plt.show()
 
