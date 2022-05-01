@@ -92,9 +92,10 @@ class PCANode(p2p_node.Node):
         self.local_data = np.matmul(self.local_data, E_t_T)
 
         self.E_t = np.transpose(E_t_T)
+        self.D = D[:self.n_components]
 
         msg = {}
-        msg['singular_values'] = np.ndarray.tolist(D[:self.n_components])
+        msg['singular_values'] = np.ndarray.tolist(self.D)
         msg['singular_vectors'] = np.ndarray.tolist(self.E_t)
         msg['data_length'] = np.shape(self.local_data)[0]
         
@@ -256,7 +257,7 @@ class SecurePCA1(PCANode):
 
 
 
-class MalPCANode(PCANode):
+class MalPCANode(SecurePCA1):
     def __init__(self, hostname, port, id, max_connections=-1, debug=False, t=None, data=None):
         super().__init__(hostname, port, id, max_connections, debug, t, data)
         self.attack_strategy = 0
@@ -295,15 +296,14 @@ class MalPCANode(PCANode):
             E_t_T = E_t_T[:self.n_components]
         
         elif self.attack_strategy == 3:
-            # make alternate singular vectors perpendicular
-            for i in range(len(E_t_T)):
-                if i % 2 != 0: 
-                    v = E_t_T[i]
-                    x = -v[:-1].sum() / v[-1] 
-                    u = np.ones_like(v)
-                    #u = u.astype(np.float32)
-                    u[-1] = x
-                    v = u 
+            # make singular vectors perpendicular
+            for i in range(len(E_t_T)): 
+                v = E_t_T[i]
+                x = -v[:-1].sum() / v[-1] 
+                u = np.ones_like(v)
+                #u = u.astype(np.float32)
+                u[-1] = x
+                E_t_T[i] = u 
 
         D_t = np.zeros((np.shape(self.local_data)[0], self.n_components))
         for i in range(self.n_components):
@@ -313,11 +313,12 @@ class MalPCANode(PCANode):
         self.local_data = np.matmul(self.local_data, E_t_T)
         ## end logic
 
+        self.E_t = np.transpose(E_t_T)
+        self.D = D[:self.n_components]
 
-        # leave below untouched. Just sending stuff
         msg = {}
-        msg['singular_values'] = np.ndarray.tolist(D[:self.n_components])
-        msg['singular_vectors'] = np.ndarray.tolist(np.transpose(E_t_T))
+        msg['singular_values'] = np.ndarray.tolist(self.D)
+        msg['singular_vectors'] = np.ndarray.tolist(self.E_t)
         msg['data_length'] = np.shape(self.local_data)[0]
         
         self.round_one_complete = True

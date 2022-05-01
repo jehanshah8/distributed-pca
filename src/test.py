@@ -1,4 +1,5 @@
 from cProfile import label
+from cgi import test
 from functools import reduce
 import sys
 import socket
@@ -44,21 +45,6 @@ def create_random_grid_graph(nodes, height, width=None, seed=1):
         return: a dictionary {node : list of connected nodes}
     """
     pass
-
-
-def plot(projected_data, labels, figname):
-    '''
-    Input:
-        lowDDataMat: the 2-d data after PCA transformation obtained from pca function
-        labelMat: the corresponding label of each observation obtained from loadData
-    '''
-    # print(np.shape(projected_data))
-    projected_data = np.transpose(projected_data)
-    # print(lowDDataMatT)
-    plt.scatter(projected_data[0], projected_data[1], c=labels)
-    plt.savefig(figname)
-    plt.show()
-
 
 def load_dataset(dataset_path='iris_with_cluster.csv', seperate_feats=True):
     df = pd.read_csv(dataset_path)
@@ -219,11 +205,14 @@ class P2P_Network():
 
 
 class BaselineTest(): #original data centered around mean
-    def __init__(self):
+    def __init__(self, n_mal_nodes=0, attack_type='None'):
         #self.n_components = None
         #self.projected_data = None
         self.total_variance = None
         self.rand_ind = None
+        self.n_mal_nodes = n_mal_nodes
+        self.attack_type = attack_type
+        self.projected_data = None
 
     def do_k_means_benchmarking(self, data_mat, label_mat):
         n_true_clusters = np.unique(label_mat).size
@@ -233,24 +222,30 @@ class BaselineTest(): #original data centered around mean
 
     def run(self, data_mat, label_mat, n_components):
         self.n_components = n_components
+        data_mat = np.array(data_mat)
+        print(data_mat.shape)
+        label_mat = np.array(label_mat)
         #self.label_mat = label_mat
         #self.projected_data = data_mat
 
 
         mean = np.mean(data_mat, axis=0)
         data_mat -= mean
-        #self.projected_data = data_mat
-
+        self.projected_data = data_mat
+    
         U, D, E_T = np.linalg.svd(data_mat, full_matrices=True)
         explained_variance = (D**2) / (np.shape(data_mat)[0] - 1)
         self.total_variance = explained_variance.sum()
         self.do_k_means_benchmarking(data_mat, label_mat)
 
 class PCATest(BaselineTest): #central PCA
-    def __init__(self):
-        super().__init__()
+    def __init__(self, n_mal_nodes=None, attack_type=None):
+        super().__init__(n_mal_nodes, attack_type)
 
     def run(self, data_mat, label_mat, n_components, reduce_dim):
+        data_mat = np.array(data_mat)
+        print(data_mat.shape)
+        label_mat = np.array(label_mat)
         self.n_components = n_components
         #self.label_mat = label_mat
         mean = np.mean(data_mat, axis=0)
@@ -273,13 +268,15 @@ class PCATest(BaselineTest): #central PCA
         U, D, E_T = np.linalg.svd(projected_data, full_matrices=True)
         explained_variance = (D**2) / (np.shape(projected_data)[0] - 1)
         self.total_variance = explained_variance.sum()
-
+        self.projected_data = projected_data
         self.do_k_means_benchmarking(projected_data, label_mat)
 
 class DistPCATest(BaselineTest):
-    def __init__(self, p2p_network):
+    def __init__(self, p2p_network, n_mal_nodes=None, attack_type=None):
         super().__init__()
         self.p2p_network = p2p_network.network
+        self.n_mal_nodes = n_mal_nodes
+        self.attack_type = attack_type
 
     def run(self, datasets, label_mat, n_components, reduce_dim):
         print()
@@ -301,10 +298,41 @@ class DistPCATest(BaselineTest):
         #plot(dist_pca_projected_data, dist_label_mat, 'distributed-network')
         print('end test')
         print()
-
+        self.projected_data = projected_data
         self.do_k_means_benchmarking(projected_data, label_mat)
 
+def plot_data(tests, label_mat, n_components, n_nodes, dataset_name):
+    '''
+    Input: gets a list of tests. Each test has the following:
+    projected_data
+    n_mal_nodes 
+    attack_type
+
+    TODO: create a figure with subplots. Each subplot should be the first two components of the projected data for that number of mal nodes
+    There should be len(tests) no. of subplots
+    save result to file with relevant text
+    '''
+
+    # print(np.shape(projected_data))
+    
+    fig, axs = plt.subplots(len(tests))
+    #fig, axs = plt.subplots(3, 2)
+    fig.suptitle(f'{dataset_name} dataset with {n_components} principal components, {n_nodes} nodes and {attack_type} attack')
+    
+    for i in range(len(tests)):
+        t = tests[i]
+        axs[i].scatter(t.projected_data[:,0], t.projected_data[:,1], c=label_mat)
+        axs[i].set_title(f'{t.n_mal_nodes} malicious nodes')
+        #plt.text(0, 0, s=f'proj data with principal components = {n_components}, \n no. of nodes = {n_nodes} \n {n_mal_nodes} of {attack_type} type')
+    
+    figname = f'dataset_name_{n_components}comps_{n_nodes}nodes_{attack_type}_attack_proj_data.png'
+    fig.savefig(figname) 
+    plt.show()
+
 def plot_total_variance(x, pca_tests, n_components, n_nodes, dataset_name):
+    """
+    receives a dictionary of test objects. Each key is the attack type, value is list of test objects. Each test object has a field for total_variance
+    """
     figname = dataset_name + '_' + str(n_nodes) + 'nodes_' + str(n_components) + 'comps_total_var.png'
     
     x_axis = np.arange(len(x))
@@ -314,7 +342,13 @@ def plot_total_variance(x, pca_tests, n_components, n_nodes, dataset_name):
         total_vars = [test.total_variance for test in tests]
         plt.bar(x_axis+(i * w), total_vars, width=w, label=attack_type)
         i += 1
-    
+
+    #attack_type = 'reverse_order'
+    #tests = pca_tests[attack_type]
+    #total_vars = [test.total_variance for test in tests]
+    #plt.bar(x_axis+(i * w), total_vars, width=w, label=attack_type)
+    #i += 1
+
     plt.legend(pca_tests.keys())
     plt.xticks(x_axis,x)
     plt.title('Total variance as a function of malicious nodes')
@@ -326,6 +360,9 @@ def plot_total_variance(x, pca_tests, n_components, n_nodes, dataset_name):
 
 
 def plot_rand_ind(x, pca_tests, n_components, n_nodes, dataset_name):
+    """
+    receives a dictionary of test objects. Each key is the attack type, value is list of test objects. Each test object has a field for rand_ind
+    """
     figname = dataset_name + '_' + str(n_nodes) + 'nodes_' + str(n_components) + 'comps_rand.png'
     
     x_axis = np.arange(len(x))
@@ -351,13 +388,13 @@ if __name__ == '__main__':
     if len(sys.argv) == 5:
         pass
     else:
-        n_nodes = 5
+        n_nodes = 3
         n_max_mal_nodes = n_nodes - 1
         #n_max_mal_nodes = 0
         #n_max_mal_nodes = 1
-        #dataset_path = '/datasets/iris/iris_with_cluster.csv'
-        dataset_path = '/datasets/cho/cho.csv'
-        n_components = 10
+        dataset_path = '/datasets/iris/iris_with_cluster.csv'
+        #dataset_path = '/datasets/cho/cho.csv'
+        n_components = 2
         reduce_dim = False
 
     
@@ -369,8 +406,12 @@ if __name__ == '__main__':
 
 
     data_mat, label_mat = load_dataset(dataset_path, True)
+    
+    #attacks = {'randomize' : 1, 'reverse_order' : 2, 'make_perpendicular' : 3}
+    #attacks = {'randomize' : 1}
+    attacks = {'reverse_order' : 2}
+    #attacks = {'make_perpendicular' : 3}
 
-    attacks = {'randomize' : 1, 'reverse_order' : 2, 'make_perpendicular' : 3}
     pca_tests = {key : [] for key in attacks.keys()}
     print(pca_tests)
 
@@ -400,27 +441,32 @@ if __name__ == '__main__':
     
     malicious_node_ids = set()
     random.seed(0)
-    for i in range(n_max_mal_nodes):
+    for i in range(1, n_max_mal_nodes + 1):
         mal_id = random.randrange(1, n_nodes) # never make 0 malicious 
         while mal_id in malicious_node_ids:
             mal_id = random.randrange(1, n_nodes)
         malicious_node_ids.add(mal_id)
         print(f'made node {mal_id} malicious')
 
-        for key, attack_num in attacks.items():
-            print(f'attack type {key}, {attack_num}')
-            tests = pca_tests[key]
+        for attack_type, attack_num in attacks.items():
+            print(f'attack type {attack_type}, {attack_num}')
+            
             my_p2p_network.make_malicious([mal_id], pca_p2p_node.MalPCANode, attack_num)
 
-            pca_test = DistPCATest(my_p2p_network)
-            tests.append(pca_test)
+            pca_test = DistPCATest(my_p2p_network, i, attack_type)
             pca_test.run(local_datasets, label_mat, n_components, reduce_dim)
 
+            pca_tests[attack_type].append(pca_test)
             my_p2p_network.reset_all() 
 
     # Stop all nodes
     #time.sleep(3)
     my_p2p_network.destroy()
+
+
+    #print(pca_tests) 
+    for attack_type, tests in pca_tests.items(): 
+        plot_data(tests, label_mat, n_components, n_nodes, dataset_name)
 
     x = ['og data', 'c pca']
     x += [str(x) for x in range (n_max_mal_nodes + 1)]
@@ -429,7 +475,7 @@ if __name__ == '__main__':
 
     plot_rand_ind(x, pca_tests, n_components, n_nodes, dataset_name)
     
-
+    
     print('finished')
 
 
