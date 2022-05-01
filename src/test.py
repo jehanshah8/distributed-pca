@@ -325,7 +325,7 @@ def plot_data(tests, label_mat, n_components, n_nodes, dataset_name):
         axs[i].set_title(f'{t.n_mal_nodes} malicious nodes')
         #plt.text(0, 0, s=f'proj data with principal components = {n_components}, \n no. of nodes = {n_nodes} \n {n_mal_nodes} of {attack_type} type')
     
-    figname = f'dataset_name_{n_components}comps_{n_nodes}nodes_{attack_type}_attack_proj_data.png'
+    figname = f'{dataset_name}_{n_components}comps_{n_nodes}nodes_{attack_type}_attack_proj_data.png'
     fig.savefig(figname) 
     plt.show()
 
@@ -389,7 +389,7 @@ if __name__ == '__main__':
     if len(sys.argv) == 5:
         pass
     else:
-        n_nodes = 4
+        n_nodes = 5
         n_max_mal_nodes = n_nodes - 1
         #n_max_mal_nodes = 0
         #n_max_mal_nodes = 1
@@ -408,9 +408,9 @@ if __name__ == '__main__':
 
     data_mat, label_mat = load_dataset(dataset_path, True)
     
-    attacks = {'randomize' : 1, 'reverse_order' : 2, 'make_perpendicular' : 3}
+    #attacks = {'randomize' : 1, 'reverse_order' : 2, 'make_perpendicular' : 3}
     #attacks = {'randomize' : 1}
-    #attacks = {'reverse_order' : 2}
+    attacks = {'reverse_order' : 2}
     #attacks = {'make_perpendicular' : 3}
 
     pca_tests = {key : [] for key in attacks.keys()}
