@@ -115,6 +115,7 @@ class PCANode(p2p_node.Node):
             (np.shape(self.local_data)[1], np.shape(self.local_data)[1]))
 
         # for self
+        D_t = np.zeros((np.shape(self.local_data)[0], self.n_components))
         for j in range(self.n_components):
             D_t[j][j] = self.D[j]
         E_t = self.E_t
@@ -240,6 +241,7 @@ class SecurePCA1(PCANode):
         similarities = {}
 
         # for self
+        D_t = np.zeros((np.shape(self.local_data)[0], self.n_components))
         for j in range(self.n_components):
             D_t[j][j] = self.D[j]
         E_t = self.E_t
