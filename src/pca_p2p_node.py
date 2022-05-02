@@ -284,15 +284,15 @@ class SecurePCA1(PCANode):
             g_cov_mat = np.add(g_cov_mat, cov_mat)
 
         self.g_cov_mat = g_cov_mat
-        U, D, E_T = np.linalg.svd(g_cov_mat, full_matrices=True)
+        U2, D2, E_T2 = np.linalg.svd(g_cov_mat, full_matrices=True)
 
         # projecting data onto the reduced (n_components) dimensional space
         self.local_data = np.matmul(
-            self.local_data, np.transpose(E_T[:self.n_components]))
+            self.local_data, np.transpose(E_T2[:self.n_components]))
 
         # adding below means projecting data onto original dimensional space
         if not self.reduce_dim:
-            self.local_data = np.matmul(self.local_data, E_T[:self.n_components])
+            self.local_data = np.matmul(self.local_data, E_T2[:self.n_components])
 
         msg = {}
         msg['local_projected_data'] = np.ndarray.tolist(self.local_data)
@@ -346,6 +346,7 @@ class MalPCANode(SecurePCA1):
         
         elif self.attack_strategy == 3:
             # make singular vectors perpendicular
+            D = 1 / D
             for i in range(len(E_t_T)): 
             #for i in range(1): #only make 1st perpendicular
                 v = E_t_T[i]
