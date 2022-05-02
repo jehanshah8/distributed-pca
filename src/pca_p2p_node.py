@@ -6,6 +6,7 @@ import socket
 from matplotlib import pyplot as plt
 from sklearn.metrics.pairwise import cosine_similarity
 from numpy.linalg import norm
+import collections
 
 class PCANode(p2p_node.Node):
     def __init__(self, hostname, port, id, max_connections=-1, debug=False, t=None, data=None):
@@ -181,8 +182,16 @@ class PCANode(p2p_node.Node):
         if len(self.projected_data_recv) >= len(self.connections) and self.round_two_complete:
             self.debug_print('got P_hat from all nodes')
             projected_data_recv_list = []
-            projected_data_recv_list.append(self.local_data)
-            [projected_data_recv_list.append(p) for  p in self.projected_data_recv.values()]
+
+            self.projected_data_recv = collections.OrderedDict(sorted(self.projected_data_recv.items()))
+
+            for id, p in self.projected_data_recv:
+                if id < self.id:
+                    projected_data_recv_list.append(p)
+                else: 
+                    projected_data_recv_list.append(self.local_data)
+
+            #[projected_data_recv_list.append(p) for  p in self.projected_data_recv.values()]
 
             self.projected_global_data = np.concatenate(projected_data_recv_list, axis=0)
 
