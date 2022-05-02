@@ -219,13 +219,15 @@ class BaselineTest(): #original data centered around mean
         self.n_mal_nodes = n_mal_nodes
         self.attack_type = attack_type
         self.projected_data = None
+        self.predicted_labels = None
 
     def do_k_means_benchmarking(self, data_mat, label_mat):
         n_true_clusters = np.unique(label_mat).size
         kmeans = KMeans(init='k-means++', n_clusters=n_true_clusters, random_state=0) 
-        clustering = kmeans.fit_predict(data_mat)
-        self.rand_ind = metrics.rand_score(label_mat, clustering)
-
+        clustering = kmeans.fit(data_mat)
+        self.predicted_labels = np.choose(clustering.labels_,[2,3,1]).astype(np.int64)
+        self.rand_ind = metrics.rand_score(label_mat, self.predicted_labels)
+        
     def run(self, data_mat, label_mat, n_components):
         self.n_components = n_components
         data_mat = np.array(data_mat)
@@ -276,6 +278,9 @@ class PCATest(BaselineTest): #central PCA
         self.total_variance = explained_variance.sum()
         self.projected_data = projected_data
         self.do_k_means_benchmarking(projected_data, label_mat)
+        #print(self.predicted_labels)
+        #print(label_mat)
+
 
 class DistPCATest(BaselineTest):
     def __init__(self, p2p_network, n_mal_nodes=0, attack_type='None'):
@@ -329,6 +334,8 @@ def plot_data(tests, label_mat, n_components, n_nodes, dataset_name):
     
     for i in range(len(tests)):
         t = tests[i]
+        if label_mat is None:
+            label_mat = t.predicted_labels
         axs[i].scatter(t.projected_data[:,0], t.projected_data[:,1], c=label_mat)
 
         if i == 0:
@@ -371,7 +378,7 @@ def plot_total_variance(x, pca_tests, n_components, n_nodes, dataset_name):
     plt.xlabel('no. of malicious nodes')
     plt.ylabel('total variance explained by data (higher is better)')
     
-    figname = f'dataset_name_{n_components}comps_{n_nodes}nodes_{attack_type}_total_var.png'
+    figname = f'{dataset_name}_{n_components}comps_{n_nodes}nodes_{attack_type}_total_var.png'
     #figname = f'dataset_name_{n_components}comps_{n_nodes}nodes_{attack_type}_total_var.png'
     plt.savefig(figname)
     plt.show()
@@ -399,7 +406,7 @@ def plot_rand_ind(x, pca_tests, n_components, n_nodes, dataset_name):
     plt.text(len(x) - 3, rand[1], s=f'no. of principal components = {n_components}, \n no. of nodes = {n_nodes}')
     plt.xlabel('no. of malicious nodes')
     plt.ylabel('Rand index for K-means (higher is better)')
-    figname = f'dataset_name_{n_components}comps_{n_nodes}nodes_{attack_type}_rand.png'
+    figname = f'{dataset_name}_{n_components}comps_{n_nodes}nodes_{attack_type}_rand.png'
     #figname = f'dataset_name_{n_components}comps_{n_nodes}nodes_rand.png'
     plt.savefig(figname)
     plt.show()
@@ -463,7 +470,7 @@ if __name__ == '__main__':
 
     # iterate over increasing mal nodes
     
-    malicious_node_ids = set()
+    malicious_node_ids = []
     random.seed(0)
 
     # get nodes to make mal
@@ -471,9 +478,9 @@ if __name__ == '__main__':
         mal_id = random.randrange(1, n_nodes) # never make 0 malicious 
         while mal_id in malicious_node_ids:
             mal_id = random.randrange(1, n_nodes)
-        malicious_node_ids.add(mal_id)
+        malicious_node_ids.append(mal_id)
 
-    malicious_node_ids = list(malicious_node_ids)
+    #malicious_node_ids = list(malicious_node_ids)
     #malicious_node_ids = [id for id in malicious_node_ids]
 
     for attack_type, attack_num in attacks.items():
@@ -500,6 +507,9 @@ if __name__ == '__main__':
     #print(pca_tests) 
     for attack_type, tests in pca_tests.items(): 
         plot_data(tests, label_mat, n_components, n_nodes, dataset_name)
+
+    for attack_type, tests in pca_tests.items(): 
+        plot_data(tests, None, n_components, n_nodes, 'kmeans_' + dataset_name)
 
     x = ['og data', 'c pca']
     x += [str(x) for x in range (n_max_mal_nodes + 1)]
