@@ -1,3 +1,4 @@
+from re import T
 from sklearn.metrics import explained_variance_score
 import p2p_node
 import numpy as np
@@ -183,14 +184,26 @@ class PCANode(p2p_node.Node):
             self.debug_print('got P_hat from all nodes')
             projected_data_recv_list = []
 
+            self.projected_data_recv = {int(k) : v for k, v in self.projected_data_recv.items()}
             self.projected_data_recv = collections.OrderedDict(sorted(self.projected_data_recv.items()))
 
-            for id, p in self.projected_data_recv:
-                if id < self.id:
-                    projected_data_recv_list.append(p)
-                else: 
-                    projected_data_recv_list.append(self.local_data)
+            concat_order = []
+            inserted_self = False
+            for id, p in self.projected_data_recv.items():
+                #print(type(id))
+                if int(self.id) < int(id) and not inserted_self:
+                    projected_data_recv_list.append(self.local_data) 
+                    inserted_self = True
+                    concat_order.append(int(self.id))
+                projected_data_recv_list.append(p)
+                concat_order.append(int(id))
+            
+            if not inserted_self:
+                projected_data_recv_list.append(self.local_data) 
+                concat_order.append(int(self.id))
 
+
+            #self.debug_print(f'P_hat concat order {concat_order}')
             #[projected_data_recv_list.append(p) for  p in self.projected_data_recv.values()]
 
             self.projected_global_data = np.concatenate(projected_data_recv_list, axis=0)
@@ -288,6 +301,8 @@ class MalPCANode(SecurePCA1):
          ## DEFINE ATTACKS HERE:
         if self.attack_strategy == 1:
             # randomize the values in the singular vectors 
+            D = np.random.rand(len(D))
+
             shape = np.shape(E_t_T)
             E_t_T = np.random.rand(shape[0], shape[1])
             
@@ -307,6 +322,7 @@ class MalPCANode(SecurePCA1):
         elif self.attack_strategy == 3:
             # make singular vectors perpendicular
             for i in range(len(E_t_T)): 
+            #for i in range(1): #only make 1st perpendicular
                 v = E_t_T[i]
                 x = -v[:-1].sum() / v[-1] 
                 u = np.ones_like(v)

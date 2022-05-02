@@ -293,12 +293,13 @@ class DistPCATest(BaselineTest):
 
         projected_data = self.p2p_network[0].projected_global_data
         self.total_variance = self.p2p_network[0].total_variance
-
+    
         # print(np.shape(dist_pca_projected_data))
         #plot(dist_pca_projected_data, dist_label_mat, 'distributed-network')
         print('end test')
         print()
         self.projected_data = projected_data
+        #print(self.projected_data)
         self.do_k_means_benchmarking(projected_data, label_mat)
 
 def plot_data(tests, label_mat, n_components, n_nodes, dataset_name):
@@ -342,7 +343,8 @@ def plot_total_variance(x, pca_tests, n_components, n_nodes, dataset_name):
 
     x_axis = np.arange(len(x))
     w = 0.2
-    i = -1
+    #i = -1
+    i = 0
     for attack_type, tests in pca_tests.items():
         total_vars = [test.total_variance for test in tests]
         plt.bar(x_axis+(i * w), total_vars, width=w, label=attack_type)
@@ -373,7 +375,8 @@ def plot_rand_ind(x, pca_tests, n_components, n_nodes, dataset_name):
 
     x_axis = np.arange(len(x))
     w = 0.2
-    i = -1
+    #i = -1
+    i = 0
     for attack_type, tests in pca_tests.items():
         rand = [test.rand_ind for test in tests]
 
@@ -415,8 +418,8 @@ if __name__ == '__main__':
     data_mat, label_mat = load_dataset(dataset_path, True)
     
     #attacks = {'randomize' : 1, 'reverse_order' : 2, 'make_perpendicular' : 3}
-    #attacks = {'randomize' : 1}
-    attacks = {'reverse_order' : 2}
+    attacks = {'randomize' : 1}
+    #attacks = {'reverse_order' : 2}
     #attacks = {'make_perpendicular' : 3}
 
     pca_tests = {key : [] for key in attacks.keys()}
@@ -424,7 +427,10 @@ if __name__ == '__main__':
 
     baseline_test = BaselineTest()
     baseline_test.run(data_mat, label_mat, n_components)
-    {tests.append(baseline_test) for tests in pca_tests.values()}
+    for attack_type, tests in pca_tests.items():
+        print(attack_type)
+        tests.append(baseline_test) 
+        print(len(tests))
 
     central_pca_test = PCATest()
     central_pca_test.run(data_mat, label_mat, n_components, reduce_dim)
@@ -440,8 +446,8 @@ if __name__ == '__main__':
     # test with no mal nodes
     pca_test = DistPCATest(my_p2p_network)
     #pca_tests.append(pca_test)
-    {tests.append(pca_test) for tests in pca_tests.values()}
     pca_test.run(local_datasets, label_mat, n_components, reduce_dim)
+    {tests.append(pca_test) for tests in pca_tests.values()}
     my_p2p_network.reset_all() 
 
     # iterate over increasing mal nodes
@@ -464,6 +470,7 @@ if __name__ == '__main__':
             pca_test.run(local_datasets, label_mat, n_components, reduce_dim)
 
             pca_tests[attack_type].append(pca_test)
+            #print(f'hereeeeeeeeeeee: {len(pca_tests[attack_type])}')
             my_p2p_network.reset_all() 
 
     # Stop all nodes
