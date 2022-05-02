@@ -114,9 +114,19 @@ class PCANode(p2p_node.Node):
         g_cov_mat = np.zeros(
             (np.shape(self.local_data)[1], np.shape(self.local_data)[1]))
 
+        # for self
+        for j in range(self.n_components):
+            D_t[j][j] = self.D[j]
+        E_t = self.E_t
+        cov_mat = np.matmul(E_t, np.transpose(D_t))
+        cov_mat = np.matmul(cov_mat, D_t)
+        cov_mat = np.matmul(cov_mat, np.transpose(E_t))
+        cov_mat = cov_mat / (self.data_lengths_recv[id] - 1)
+        g_cov_mat = np.add(g_cov_mat, cov_mat)
+
+
         # for data from each node
         for id in self.connections.keys():
-
             D_t = np.zeros((np.shape(self.local_data)[0], self.n_components))
 
             for j in range(self.n_components):
@@ -129,6 +139,7 @@ class PCANode(p2p_node.Node):
             cov_mat = np.matmul(cov_mat, np.transpose(E_t))
             cov_mat = cov_mat / (self.data_lengths_recv[id] - 1)
             g_cov_mat = np.add(g_cov_mat, cov_mat)
+
 
         self.g_cov_mat = g_cov_mat
         U, D, E_T = np.linalg.svd(g_cov_mat, full_matrices=True)
