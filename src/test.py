@@ -478,11 +478,11 @@ if __name__ == '__main__':
 
     for attack_type, attack_num in attacks.items():
         print(f'attack type {attack_type}, {attack_num}')
-        for i in range(1, n_max_mal_nodes + 1):
+        for i in range(n_max_mal_nodes):
             mal_id = malicious_node_ids[i]
             print(f'made node {mal_id} malicious')
             my_p2p_network.make_malicious([mal_id], pca_p2p_node.MalPCANode, attack_num)
-            t = DistPCATest(my_p2p_network, i, attack_type)
+            t = DistPCATest(my_p2p_network, i+1, attack_type)
             t.run(local_datasets, label_mat, n_components, reduce_dim)
             pca_tests[attack_type].append(t)
             #print(t.total_variance)
