@@ -121,7 +121,7 @@ class PCANode(p2p_node.Node):
         cov_mat = np.matmul(E_t, np.transpose(D_t))
         cov_mat = np.matmul(cov_mat, D_t)
         cov_mat = np.matmul(cov_mat, np.transpose(E_t))
-        cov_mat = cov_mat / (self.data_lengths_recv[id] - 1)
+        cov_mat = cov_mat / (np.shape(self.local_data)[0] - 1)
         g_cov_mat = np.add(g_cov_mat, cov_mat)
 
 
@@ -238,6 +238,18 @@ class SecurePCA1(PCANode):
             (np.shape(self.local_data)[1], np.shape(self.local_data)[1]))
 
         similarities = {}
+
+        # for self
+        for j in range(self.n_components):
+            D_t[j][j] = self.D[j]
+        E_t = self.E_t
+        cov_mat = np.matmul(E_t, np.transpose(D_t))
+        cov_mat = np.matmul(cov_mat, D_t)
+        cov_mat = np.matmul(cov_mat, np.transpose(E_t))
+        cov_mat = cov_mat / (np.shape(self.local_data)[0] - 1)
+        g_cov_mat = np.add(g_cov_mat, cov_mat)
+
+
         # for data from each node
         for id in self.connections.keys():
 
