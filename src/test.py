@@ -415,13 +415,13 @@ if __name__ == '__main__':
     if len(sys.argv) == 5:
         pass
     else:
-        n_nodes = 5
+        n_nodes = 10
         n_max_mal_nodes = n_nodes - 1
         #n_max_mal_nodes = 0
         #n_max_mal_nodes = 1
         dataset_path = '/datasets/iris/iris_with_cluster.csv'
         #dataset_path = '/datasets/cho/cho.csv'
-        n_components = 2
+        n_components = 4
         reduce_dim = False
 
     
@@ -484,10 +484,10 @@ if __name__ == '__main__':
     #malicious_node_ids = [id for id in malicious_node_ids]
 
     for attack_type, attack_num in attacks.items():
-        print(f'attack type {attack_type}, {attack_num}')
+        print(f'attack type {attack_type}, num {attack_num}')
         for i in range(n_max_mal_nodes):
             mal_id = malicious_node_ids[i]
-            print(f'made node {mal_id} malicious')
+            print(f'made node {mal_id} malicious. {i + 1} nodes malicious now')
             my_p2p_network.make_malicious([mal_id], pca_p2p_node.MalPCANode, attack_num)
             t = DistPCATest(my_p2p_network, i+1, attack_type)
             t.run(local_datasets, label_mat, n_components, reduce_dim)
